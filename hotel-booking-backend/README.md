@@ -58,7 +58,7 @@ This backend serves as the **core API engine** for a comprehensive hotel booking
 
 ```bash
 # Clone the repository
-git clone https://github.com/arnobt78/MERN-Hotel-Booking--React-FullStack.git
+git clone https://github.com/bhanurx100/stayease-hotel-booking-platform
 cd hotel-booking-backend
 
 # Install dependencies
@@ -703,13 +703,3 @@ This backend is designed to be **production-ready**, **developer-friendly**, and
 - 🏢 **Business Ready**: Production-grade features and security
 - 🔧 **Extensible**: Easy to add new features and integrations
 - 📚 **Well Documented**: Comprehensive documentation and examples
-
-**Get Started Today!** 🚀
-
-This is an **open-source project** - feel free to use, enhance, and extend this project further!
-
-If you have any questions or want to share your work, reach out via GitHub or my portfolio at [https://www.arnobmahmud.com/](https://www.arnobmahmud.com/).
-
-**Enjoy building and learning!** 🚀
-
-Thank you! 😊
