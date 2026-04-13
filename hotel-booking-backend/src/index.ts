@@ -19,6 +19,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import rateLimit from "express-rate-limit";
+import aiRoutes from "./routes/ai";
 
 // Environment Variables Validation
 const requiredEnvVars = [
@@ -211,6 +212,7 @@ app.use("/api/my-bookings", bookingRoutes);
 app.use("/api/bookings", bookingsManagementRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/business-insights", businessInsightsRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Swagger API Documentation
 app.use(
