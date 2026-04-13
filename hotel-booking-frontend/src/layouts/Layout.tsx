@@ -3,6 +3,7 @@ import Header from "../components/Header";
 import { useLocation } from "react-router-dom";
 // import Hero from "../components/Hero";
 // import SearchBar from "../components/SearchBar";
+import AIChatbot from "../components/AIChatbot";
 
 interface Props {
   children: React.ReactNode;
@@ -29,6 +30,7 @@ const Layout = ({ children }: Props) => {
         </div>
       )}
       <Footer />
+      <AIChatbot />
     </div>
   );
 };
