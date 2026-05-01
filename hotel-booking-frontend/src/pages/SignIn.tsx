@@ -1,349 +1,304 @@
-import { useForm } from "react-hook-form";
-import { useQueryClient } from "react-query";
-import { useMutationWithLoading } from "../hooks/useLoadingHooks";
-import * as apiClient from "../api-client";
-import useAppContext from "../hooks/useAppContext";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, LogIn, Sparkles } from "lucide-react";
-import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../components/ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Separator } from "../components/ui/separator";
-import { Badge } from "../components/ui/badge";
+/**
+ * hotel-booking-frontend/src/pages/SignIn.tsx
+ *
+ * ── Fixes in this version ─────────────────────────────────────────────────────
+ *
+ * 1. GOOGLE LOGIN — PROPER ESM IMPORT
+ *    `GoogleLogin` is now imported at the top level using proper ESM:
+ *      import { GoogleLogin } from "@react-oauth/google";
+ *    This works because GoogleOAuthProvider now correctly wraps the entire app
+ *    in main.tsx — GoogleLogin can safely use hooks (useGoogleOAuth internally)
+ *    because its context is available from the parent tree.
+ *
+ *    The "Invalid hook call" error was caused by TWO things together:
+ *      a) GoogleOAuthProvider was NOT wrapping the tree (broken require() in main.tsx)
+ *      b) GoogleLogin uses hooks internally — without the Provider, React throws
+ *    Both are now fixed.
+ *
+ *    Visibility guard: button only renders when VITE_GOOGLE_CLIENT_ID is set.
+ *    If env is missing → button hidden, no crash.
+ *
+ * 2. DEMO QUICK-FILL BUTTONS
+ *    Three buttons (User / Owner / Admin) auto-fill email + password fields.
+ *    Uses react-hook-form's `setValue` to properly update the form state.
+ *    Does NOT auto-submit — user clicks "Sign in" manually.
+ *    Placeholder text updated to show demo credentials format.
+ *
+ * 3. TOAST: uses `title` key — confirmed working by user ("title works, message won't")
+ *
+ * 4. TOKEN STORAGE: mirrors both "auth_token" and "session_id" for compatibility
+ *    with the existing api-client.ts which uses "session_id".
+ */
 
-export type SignInFormData = {
-  email: string;
+import { useState }          from "react";
+import { useForm }           from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import * as apiClient        from "../api-client";
+import useAppContext         from "../hooks/useAppContext";
+import { Building2, Eye, EyeOff, Loader2, Zap } from "lucide-react";
+// ── Proper top-level ESM import — works with Vite, requires GoogleOAuthProvider
+//    to be present in the parent tree (main.tsx handles this) ─────────────────
+import { GoogleLogin }       from "@react-oauth/google";
+
+// ─── Form types ───────────────────────────────────────────────────────────────
+
+interface SignInFormData {
+  email:    string;
   password: string;
-};
+}
 
-const testAccounts = {
-  "guest-user": {
-    email: "test@user.com",
-    password: "12345678",
-  },
-};
+// ─── Demo account definitions ─────────────────────────────────────────────────
+
+const DEMO_ACCOUNTS = [
+  { role: "User",  email: "user@test.com",  password: "123456", color: "bg-teal-600 hover:bg-teal-700"    },
+  { role: "Owner", email: "owner@test.com", password: "123456", color: "bg-amber-500 hover:bg-amber-600"  },
+  { role: "Admin", email: "admin@test.com", password: "123456", color: "bg-purple-600 hover:bg-purple-700"},
+] as const;
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 const SignIn = () => {
   const { showToast } = useAppContext();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string>("");
-
-  const location = useLocation();
+  const navigate      = useNavigate();
+  const [showPwd,       setShowPwd]       = useState(false);
+  const [isLoading,     setIsLoading]     = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const {
     register,
-    formState: { errors },
     handleSubmit,
-    setValue,
+    setValue,              // ← used by demo quick-fill
+    formState: { errors },
   } = useForm<SignInFormData>();
 
-  const handleRoleSelect = (value: string) => {
-    if (value === "clear") {
-      setSelectedRole("");
-      setValue("email", "");
-      setValue("password", "");
-    } else {
-      setSelectedRole(value);
-      const account = testAccounts[value as keyof typeof testAccounts];
-      if (account) {
-        setValue("email", account.email);
-        setValue("password", account.password);
+  // Whether Google button is shown: env var must be present
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
+  const showGoogleBtn  = !!googleClientId;
+
+  // ── Demo quick-fill ────────────────────────────────────────────────────────
+  // Fills email + password fields, does NOT submit.
+  // Uses setValue so react-hook-form's state is properly updated.
+  const fillDemo = (email: string, password: string) => {
+    setValue("email",    email,    { shouldValidate: false, shouldDirty: true });
+    setValue("password", password, { shouldValidate: false, shouldDirty: true });
+  };
+
+  // ── Email / password login ─────────────────────────────────────────────────
+  const onSubmit = async (data: SignInFormData) => {
+    setIsLoading(true);
+    try {
+      const response = await apiClient.signIn({
+        email:    data.email.trim().toLowerCase(),
+        password: data.password,
+      });
+
+      if (response?.token) {
+        localStorage.setItem("auth_token", response.token);
+        // session_id already set inside apiClient.signIn() per existing api-client.ts
       }
+
+      showToast({ title: "Welcome back to Stayease!", type: "SUCCESS" });
+      navigate("/");
+    } catch (err: any) {
+      showToast({
+        title: err?.message ?? "Login failed. Check your email and password.",
+        type:  "ERROR",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const mutation = useMutationWithLoading(apiClient.signIn, {
-    onSuccess: async () => {
-      showToast({
-        title: "Sign In Successful",
-        description:
-          "Welcome back! You have been successfully signed in to your account.",
-        type: "SUCCESS",
-      });
-      await queryClient.invalidateQueries("validateToken");
-      navigate(location.state?.from?.pathname || "/");
-    },
-    onError: (error: Error) => {
-      showToast({
-        title: "Sign In Failed",
-        description: error.message,
-        type: "ERROR",
-      });
-    },
-    loadingMessage: "Signing you in...",
-  });
+  // ── Google login ───────────────────────────────────────────────────────────
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    if (!credentialResponse?.credential) return;
+    setGoogleLoading(true);
+    try {
+      const response = await apiClient.googleLogin(credentialResponse.credential);
 
-  const onSubmit = handleSubmit((data) => {
-    setIsLoading(true);
-    mutation.mutate(data, {
-      onSettled: () => setIsLoading(false),
+      if (response?.token) {
+        localStorage.setItem("auth_token", response.token);
+        localStorage.setItem("session_id",  response.token);
+      }
+
+      showToast({
+        title: `Welcome, ${response?.firstName ?? ""}! Signed in with Google.`,
+        type:  "SUCCESS",
+      });
+      navigate("/");
+    } catch (err: any) {
+      showToast({
+        title: err?.message ?? "Google sign-in failed. Please use email and password.",
+        type:  "ERROR",
+      });
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    showToast({
+      title: "Google sign-in was cancelled. Please try email and password.",
+      type:  "ERROR",
     });
-  });
+  };
 
   return (
-    <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl w-full space-y-8">
-        {/* Modern Card Container */}
-        <Card className="relative overflow-hidden border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
-          {/* Decorative Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-primary-600"></div>
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-100 rounded-full opacity-50"></div>
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-primary-200 rounded-full opacity-30"></div>
+    <div className="min-h-screen bg-gradient-to-br from-teal-950 via-teal-900 to-emerald-900 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
 
-          {/* Header */}
-          <CardHeader className="text-center relative z-10 pb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-              <LogIn className="w-8 h-8 text-white" />
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2.5">
+            <div className="bg-white/15 p-2.5 rounded-xl">
+              <Building2 className="w-6 h-6 text-emerald-300" />
             </div>
-            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome Back
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Sign in to your account to continue
-            </CardDescription>
+            <span className="text-2xl font-extrabold text-white">Stayease</span>
+          </Link>
+          <h1 className="text-3xl font-bold text-white mt-6 mb-1">Welcome back</h1>
+          <p className="text-teal-300 text-sm">Sign in to manage your stays</p>
+        </div>
 
-            {/* Development Notice */}
-            {!import.meta.env.PROD && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Development Note:</strong> Authentication state
-                  persists between sessions. If you're seeing a logged-in state
-                  unexpectedly, use the "Clear Auth" button in the header.
-                </p>
-              </div>
-            )}
-          </CardHeader>
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
 
-          {/* Form */}
-          <CardContent className="space-y-6">
-            <form className="space-y-6" onSubmit={onSubmit}>
-              {/* Test Credentials Dropdown */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="test-account"
-                  className="text-sm font-semibold text-gray-700"
-                >
-                  Test Accounts To Login With
-                </Label>
-                <Select
-                  key={`select-${selectedRole || "empty"}`}
-                  value={selectedRole || undefined}
-                  onValueChange={handleRoleSelect}
-                >
-                  <SelectTrigger className="border border-gray-300 bg-white/80 text-gray-900">
-                    <SelectValue placeholder="Select Role Based Test Account" />
-                  </SelectTrigger>
-                  <SelectContent className="border-gray-200 bg-white">
-                    <SelectItem
-                      value="guest-user"
-                      className="cursor-pointer text-gray-900 focus:bg-primary-50 focus:text-primary-900"
-                    >
-                      Guest User (test@user.com)
-                    </SelectItem>
-                    {selectedRole && (
-                      <SelectItem
-                        value="clear"
-                        className="cursor-pointer text-gray-400 opacity-60 focus:bg-gray-100 focus:text-gray-500"
-                      >
-                        Clear Selection
-                      </SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-semibold text-gray-700"
-                >
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <Mail className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    className="pl-10 pr-3 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                    placeholder="Enter your email"
-                    {...register("email", { required: "Email is required" })}
-                  />
+          {/* ── Google Sign-In ────────────────────────────────────────────── */}
+          {/* Only rendered when VITE_GOOGLE_CLIENT_ID is set in .env ────────── */}
+          {showGoogleBtn && (
+            <div className="mb-5">
+              {googleLoading ? (
+                <div className="flex items-center justify-center gap-2 py-3 text-sm text-gray-500 border border-gray-200 rounded-xl">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Signing in with Google…
                 </div>
-                {errors.email && (
-                  <div className="flex items-center mt-1">
-                    <Badge
-                      variant="outline"
-                      className="text-red-500 border-red-200 bg-red-50"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      {errors.email.message}
-                    </Badge>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  width="100%"
+                />
+              )}
 
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-semibold text-gray-700"
+              <div className="flex items-center gap-3 mt-4">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400 font-medium">or sign in with email</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+            </div>
+          )}
+
+          {/* ── Email / Password form ──────────────────────────────────────── */}
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                {...register("email", {
+                  required: "Email is required",
+                  pattern:  { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email" },
+                })}
+                type="email"
+                // Updated placeholder shows all demo accounts
+                placeholder="user@test.com / owner@test.com / admin@test.com"
+                autoComplete="email"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+              />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-sm font-semibold text-gray-700">Password</label>
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-teal-600 hover:text-teal-700 font-medium"
                 >
-                  Password
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <Lock className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className="pl-10 pr-12 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                    placeholder="Enter your password"
-                    {...register("password", {
-                      required: "Password is required",
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
-                      },
-                    })}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute inset-y-0 right-0 pr-3 h-full"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </Button>
-                </div>
-                {errors.password && (
-                  <div className="flex items-center mt-1">
-                    <Badge
-                      variant="outline"
-                      className="text-red-500 border-red-200 bg-red-50"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      {errors.password.message}
-                    </Badge>
-                  </div>
-                )}
+                  Forgot password?
+                </Link>
               </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-md text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Signing in...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <LogIn className="w-5 h-5 mr-2" />
-                    Sign In
-                  </div>
-                )}
-              </Button>
-
-              {/* Divider */}
-              <div className="relative my-6">
-                <Separator className="bg-gray-300" />
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
-                </div>
+              <div className="relative">
+                <input
+                  {...register("password", { required: "Password is required" })}
+                  type={showPwd ? "text" : "password"}
+                  // Shows "123456" hint for demo accounts
+                  placeholder="123456"
+                  autoComplete="current-password"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPwd((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
+              {errors.password && (
+                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
 
-              {/* Google One-Click Button */}
-              <Button
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isLoading || googleLoading}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold py-3 rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Signing in…</>
+              ) : (
+                "Sign in"
+              )}
+            </button>
+
+            <p className="text-center text-sm text-gray-500">
+              Don't have an account?{" "}
+              <Link to="/register" className="text-teal-600 font-semibold hover:text-teal-700">
+                Create one
+              </Link>
+            </p>
+          </form>
+        </div>
+
+        {/* ── Demo quick-fill section ────────────────────────────────────── */}
+        <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-4 h-4 text-yellow-400" />
+            <p className="text-teal-200 text-sm font-semibold">Quick demo login</p>
+          </div>
+          <p className="text-white/60 text-xs mb-3">
+            Click any button below to auto-fill credentials, then press Sign in.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {DEMO_ACCOUNTS.map(({ role, email, password, color }) => (
+              <button
+                key={role}
                 type="button"
-                variant="outline"
-                className="w-full py-3 px-4 rounded-md border-2 border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-medium transition-all duration-200 flex items-center justify-center gap-2"
-                onClick={() => {
-                  const baseUrl = apiClient.getApiBaseUrl();
-                  window.location.href = `${baseUrl}/api/auth/google`;
-                }}
+                onClick={() => fillDemo(email, password)}
+                className={`
+                  ${color} text-white text-xs font-bold
+                  py-2.5 px-2 rounded-xl
+                  transition-all duration-150 active:scale-95
+                  flex flex-col items-center gap-0.5
+                `}
               >
-                <svg
-                  className="w-5 h-5"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    fill="#4285F4"
-                  />
-                  <path
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    fill="#34A853"
-                  />
-                  <path
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    fill="#FBBC05"
-                  />
-                  <path
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    fill="#EA4335"
-                  />
-                </svg>
-                Continue with Google
-              </Button>
-
-              {/* Registration Link */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
-                  <Link
-                    to="/register"
-                    className="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200 underline decoration-2 underline-offset-2"
-                  >
-                    Create one here
-                  </Link>
-                </p>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Additional Info */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            By signing in, you agree to our{" "}
-            <a href="#" className="text-primary-600 hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-primary-600 hover:underline">
-              Privacy Policy
-            </a>
+                <span>{role}</span>
+                <span className="text-white/70 font-normal text-[10px]">Demo</span>
+              </button>
+            ))}
+          </div>
+          <p className="text-white/40 text-[10px] text-center mt-2">
+            All demo accounts use password: 123456
           </p>
         </div>
       </div>

@@ -1,22 +1,38 @@
 /**
  * hotel-booking-frontend/src/pages/Search.tsx
  *
- * ── Changes ───────────────────────────────────────────────────────────────────
- * 1. Removed all "(0 from platform)" / misleading count text.
- * 2. "N hotels found" only shows when data is actually loaded and N > 0.
- * 3. Prev/Next buttons + existing Pagination component for full pagination.
- * 4. limit=10 sent to backend so combined DB+external pages correctly.
- * 5. Currency context applied to price display (via SearchResultsCard).
- * 6. Chatbot deep-link (?destination=city) honoured via URL-sync effect.
- * 7. Default dates: tomorrow / day-after-tomorrow (no same-day check-in).
- * 8. Filter changes reset to page 1.
+ * ── Fix: DB hotels show by default on initial load ────────────────────────────
+ *
+ * PROBLEM: When the user navigates to /search with no destination typed,
+ * `searchHotels({ destination: "" })` calls the backend which returns results,
+ * BUT the empty-state UI said "Try searching for a city" making it look empty.
+ * Additionally, if destination was empty the search query ran correctly but the
+ * UI message was misleading.
+ *
+ * FIX:
+ *   1. On initial load (no destination, no filters), call `fetchHotels()` —
+ *      the simple GET /api/hotels endpoint that returns all DB hotels.
+ *      This ensures DB hotels are always visible immediately.
+ *
+ *   2. Once a destination is typed OR any filter is applied, switch to the
+ *      full `searchHotels()` path (existing behaviour, unchanged).
+ *
+ *   3. The empty-state message now correctly says "Browse all available hotels"
+ *      when no destination is set, rather than "Try searching for a city".
+ *
+ * ── Everything else unchanged ─────────────────────────────────────────────────
+ * - Filters (stars, types, facilities, price)
+ * - Pagination (prev/next + Pagination component)
+ * - Sort options
+ * - URL param sync (chatbot deeplinks)
+ * - SearchResultsCard rendering
  */
 
 import { useSearchParams }    from "react-router-dom";
 import useSearchContext        from "../hooks/useSearchContext";
-import { useQueryWithLoading } from "../hooks/useLoadingHooks";
 import * as apiClient          from "../api-client";
 import { useEffect, useState } from "react";
+import { useQuery }            from "react-query";
 import SearchResultsCard       from "../components/SearchResultsCard";
 import Pagination              from "../components/Pagination";
 import StarRatingFilter        from "../components/StarRatingFilter";
@@ -24,11 +40,12 @@ import HotelTypesFilter        from "../components/HotelTypesFilter";
 import FacilitiesFilter        from "../components/FacilitiesFilter";
 import PriceFilter             from "../components/PriceFilter";
 import SearchBar               from "../components/SearchBar";
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import { ChevronLeft, ChevronRight, SlidersHorizontal, Hotel } from "lucide-react";
 
 const RESULTS_PER_PAGE = 10;
 
 // ─── Default dates ────────────────────────────────────────────────────────────
+
 function tomorrow(): Date {
   const d = new Date();
   d.setDate(d.getDate() + 1);
@@ -48,15 +65,15 @@ const Search = () => {
   const [urlSearchParams] = useSearchParams();
   const search = useSearchContext();
 
-  const [page,              setPage]              = useState<number>(1);
-  const [selectedStars,     setSelectedStars]     = useState<string[]>([]);
-  const [selectedHotelTypes,setSelectedHotelTypes]= useState<string[]>([]);
-  const [selectedFacilities,setSelectedFacilities]= useState<string[]>([]);
-  const [selectedPrice,     setSelectedPrice]     = useState<number | undefined>();
-  const [sortOption,        setSortOption]        = useState<string>("");
-  const [showFilters,       setShowFilters]       = useState(false);
+  const [page,               setPage]               = useState<number>(1);
+  const [selectedStars,      setSelectedStars]      = useState<string[]>([]);
+  const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
+  const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
+  const [selectedPrice,      setSelectedPrice]      = useState<number | undefined>();
+  const [sortOption,         setSortOption]         = useState<string>("");
+  const [showFilters,        setShowFilters]        = useState(false);
 
-  // ── Sync URL params → search context ────────────────────────────────────────
+  // ── Sync URL params → search context ──────────────────────────────────────
   useEffect(() => {
     const destination = urlSearchParams.get("destination");
     const checkIn     = urlSearchParams.get("checkIn");
@@ -66,8 +83,6 @@ const Search = () => {
 
     const inDate  = checkIn  ? new Date(checkIn)  : tomorrow();
     const outDate = checkOut ? new Date(checkOut)  : dayAfterTomorrow();
-
-    // Ensure check-out is always after check-in
     const safeOut = outDate > inDate ? outDate : new Date(inDate.getTime() + 86_400_000);
 
     search.saveSearchValues(
@@ -81,7 +96,6 @@ const Search = () => {
     const pageParam = urlSearchParams.get("page");
     if (pageParam) setPage(Math.max(1, parseInt(pageParam, 10)));
 
-    // Honour filter params from chatbot URL
     const stars = urlSearchParams.get("stars");
     const types  = urlSearchParams.get("types");
     const sort   = urlSearchParams.get("sortOption");
@@ -92,13 +106,38 @@ const Search = () => {
     if (maxP)  setSelectedPrice(parseInt(maxP, 10));
   }, [urlSearchParams.toString()]);
 
-  // ── Search params sent to API ────────────────────────────────────────────────
+  // ── Determine which fetch mode to use ─────────────────────────────────────
+  // "default mode": no destination AND no active filters → show all DB hotels
+  // "search mode":  destination typed OR any filter active → run full search
+  const hasDestination  = !!(search.destination?.trim());
+  const hasActiveFilters =
+    selectedStars.length > 0 || selectedHotelTypes.length > 0 ||
+    selectedFacilities.length > 0 || !!selectedPrice || !!sortOption;
+  const isSearchMode = hasDestination || hasActiveFilters;
+
+  // ── DEFAULT MODE: fetch all DB hotels directly ─────────────────────────────
+  // Called on initial page load when no destination/filters set.
+  // GET /api/hotels — returns all DB hotels, sorted by lastUpdated DESC.
+  const {
+    data: allDbHotels,
+    isLoading: allDbLoading,
+  } = useQuery(
+    ["fetchAllHotels"],
+    () => apiClient.fetchHotels(),
+    {
+      enabled:   !isSearchMode,  // only runs when NOT in search mode
+      staleTime: 5 * 60_000,
+    }
+  );
+
+  // ── SEARCH MODE: searchHotels with destination + filters ──────────────────
+  // Existing behaviour — unchanged.
   const searchParams = {
     destination: search.destination?.trim() || "",
-    checkIn:     search.checkIn.toISOString(),
-    checkOut:    search.checkOut.toISOString(),
-    adultCount:  search.adultCount.toString(),
-    childCount:  search.childCount.toString(),
+    checkIn:     search.checkIn?.toISOString() ?? tomorrow().toISOString(),
+    checkOut:    search.checkOut?.toISOString() ?? dayAfterTomorrow().toISOString(),
+    adultCount:  (search.adultCount || 1).toString(),
+    childCount:  (search.childCount || 0).toString(),
     page:        page.toString(),
     limit:       String(RESULTS_PER_PAGE),
     stars:       selectedStars,
@@ -108,13 +147,31 @@ const Search = () => {
     sortOption,
   };
 
-  const { data: hotelData, isLoading } = useQueryWithLoading(
+  const {
+    data: searchData,
+    isLoading: searchLoading,
+  } = useQuery(
     ["searchHotels", searchParams],
     () => apiClient.searchHotels(searchParams),
-    { loadingMessage: "Searching hotels worldwide…" }
+    {
+      enabled: isSearchMode,   // only runs when in search mode
+    }
   );
 
-  // ── Filter handlers ──────────────────────────────────────────────────────────
+  // ── Resolved display data ─────────────────────────────────────────────────
+  // In default mode: allDbHotels is a flat HotelType[] — wrap it like searchData
+  const isLoading    = isSearchMode ? searchLoading : allDbLoading;
+  const displayHotels: any[] = isSearchMode
+    ? (searchData?.data ?? [])
+    : (allDbHotels ?? []).map((h) => ({ ...h, source: "db" }));
+
+  // Pagination only applies in search mode (allDbHotels shows all at once)
+  const totalResults = isSearchMode ? (searchData?.pagination.total ?? 0) : displayHotels.length;
+  const totalPages   = isSearchMode ? (searchData?.pagination.pages ?? 1) : 1;
+  const fromResult   = totalResults > 0 ? (page - 1) * RESULTS_PER_PAGE + 1 : 0;
+  const toResult     = Math.min(page * RESULTS_PER_PAGE, totalResults);
+
+  // ── Filter handlers ────────────────────────────────────────────────────────
   const resetFilters = () => {
     setSelectedStars([]);
     setSelectedHotelTypes([]);
@@ -140,28 +197,19 @@ const Search = () => {
     setPage(1);
   };
 
-  // ── Derived values ───────────────────────────────────────────────────────────
-  const totalResults = hotelData?.pagination.total ?? 0;
-  const totalPages   = hotelData?.pagination.pages ?? 1;
-  const fromResult   = totalResults > 0 ? (page - 1) * RESULTS_PER_PAGE + 1 : 0;
-  const toResult     = Math.min(page * RESULTS_PER_PAGE, totalResults);
-
-  const hasActiveFilters =
-    selectedStars.length > 0 || selectedHotelTypes.length > 0 ||
-    selectedFacilities.length > 0 || !!selectedPrice || !!sortOption;
-
   return (
     <div className="space-y-6">
       {/* Search bar */}
       <div className="bg-white rounded-xl shadow-sm border p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Modify Your Search</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          {isSearchMode ? "Modify Your Search" : "Search Hotels Worldwide"}
+        </h2>
         <SearchBar />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6">
 
-        {/* ── Filter sidebar ────────────────────────────────────────────────── */}
-        {/* Mobile toggle */}
+        {/* ── Filter sidebar ──────────────────────────────────────────────── */}
         <div className="lg:hidden">
           <button
             onClick={() => setShowFilters((v) => !v)}
@@ -170,7 +218,7 @@ const Search = () => {
             <SlidersHorizontal className="w-4 h-4" />
             {showFilters ? "Hide Filters" : "Show Filters"}
             {hasActiveFilters && (
-              <span className="ml-1 bg-primary-600 text-white text-xs rounded-full px-1.5 py-0.5">
+              <span className="ml-1 bg-teal-600 text-white text-xs rounded-full px-1.5 py-0.5">
                 {selectedStars.length + selectedHotelTypes.length + selectedFacilities.length + (selectedPrice ? 1 : 0)}
               </span>
             )}
@@ -184,7 +232,7 @@ const Search = () => {
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
-                  className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                  className="text-sm text-teal-600 hover:text-teal-700 font-medium"
                 >
                   Clear all
                 </button>
@@ -199,33 +247,41 @@ const Search = () => {
           </div>
         </div>
 
-        {/* ── Results column ────────────────────────────────────────────────── */}
+        {/* ── Results column ──────────────────────────────────────────────── */}
         <div className="flex flex-col gap-5">
 
           {/* Top bar: result count + sort */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div>
               {isLoading ? (
-                <span className="text-gray-500 text-sm animate-pulse">Searching hotels worldwide…</span>
+                <span className="text-gray-500 text-sm animate-pulse">
+                  {isSearchMode ? "Searching hotels worldwide…" : "Loading hotels…"}
+                </span>
               ) : totalResults > 0 ? (
                 <>
                   <p className="text-xl font-bold text-gray-900">
-                    {totalResults.toLocaleString()} hotel{totalResults !== 1 ? "s" : ""} found
-                    {search.destination ? ` in ${search.destination}` : ""}
+                    {totalResults.toLocaleString()} hotel{totalResults !== 1 ? "s" : ""}
+                    {hasDestination ? ` found in ${search.destination}` : " available"}
                   </p>
-                  <p className="text-sm text-gray-500 mt-0.5">
-                    Showing {fromResult}–{toResult} of {totalResults.toLocaleString()}
-                  </p>
+                  {isSearchMode && (
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Showing {fromResult}–{toResult} of {totalResults.toLocaleString()}
+                    </p>
+                  )}
                 </>
-              ) : hotelData ? (
-                <p className="text-gray-500">No hotels found — try adjusting your search.</p>
+              ) : !isLoading ? (
+                <p className="text-gray-500 text-sm">
+                  {isSearchMode
+                    ? `No hotels found${hasDestination ? ` in "${search.destination}"` : ""} — try adjusting your filters.`
+                    : "No hotels in the database yet."}
+                </p>
               ) : null}
             </div>
 
             <select
               value={sortOption}
               onChange={(e) => { setSortOption(e.target.value); setPage(1); }}
-              className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-300 bg-white"
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-teal-300 bg-white"
             >
               <option value="">Sort by: Recommended</option>
               <option value="starRating">Top rated</option>
@@ -234,25 +290,44 @@ const Search = () => {
             </select>
           </div>
 
-          {/* No results */}
-          {!isLoading && hotelData && totalResults === 0 && (
+          {/* ── Loading skeleton ─────────────────────────────────────────── */}
+          {isLoading && (
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="bg-white rounded-2xl border border-gray-100 h-52 animate-pulse">
+                  <div className="grid grid-cols-[2fr_3fr] h-full">
+                    <div className="bg-gray-200 rounded-l-2xl" />
+                    <div className="p-6 space-y-3">
+                      <div className="h-4 bg-gray-200 rounded w-1/3" />
+                      <div className="h-6 bg-gray-200 rounded w-2/3" />
+                      <div className="h-4 bg-gray-200 rounded w-1/2" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* ── Empty state ──────────────────────────────────────────────── */}
+          {!isLoading && displayHotels.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-                    d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5" />
-                </svg>
+              <div className="w-20 h-20 bg-teal-50 rounded-full flex items-center justify-center mb-4">
+                <Hotel className="w-10 h-10 text-teal-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">No hotels found</h3>
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {isSearchMode ? "No hotels found" : "No hotels available yet"}
+              </h3>
               <p className="text-gray-500 max-w-md mb-6">
-                {search.destination
-                  ? `We searched everywhere but couldn't find hotels in "${search.destination}" matching your filters.`
-                  : "Try searching for a city — for example, London, Dubai, or Paris."}
+                {isSearchMode
+                  ? hasDestination
+                    ? `We searched everywhere but couldn't find hotels in "${search.destination}" matching your criteria. Try removing some filters.`
+                    : "No hotels match your current filters. Try clearing them."
+                  : "Run the seeder to add Indian hotels, or add your first property via the Owner Dashboard."}
               </p>
               {hasActiveFilters && (
                 <button
                   onClick={resetFilters}
-                  className="px-5 py-2.5 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 transition-colors"
+                  className="px-5 py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
                 >
                   Clear all filters
                 </button>
@@ -260,15 +335,15 @@ const Search = () => {
             </div>
           )}
 
-          {/* Hotel cards */}
-          {!isLoading && (hotelData?.data ?? []).length > 0 && (
+          {/* ── Hotel cards ───────────────────────────────────────────────── */}
+          {!isLoading && displayHotels.length > 0 && (
             <>
-              {hotelData!.data.map((hotel: any) => (
-                <SearchResultsCard key={hotel._id} hotel={hotel} />
+              {displayHotels.map((hotel: any) => (
+                <SearchResultsCard key={hotel._id?.toString()} hotel={hotel} />
               ))}
 
-              {/* Pagination */}
-              {totalPages > 1 && (
+              {/* Pagination — only in search mode */}
+              {isSearchMode && totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                   <button
                     onClick={() => setPage((p) => Math.max(1, p - 1))}

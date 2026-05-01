@@ -1,401 +1,254 @@
-import { useForm } from "react-hook-form";
-import { useQueryClient } from "react-query";
-import { useMutationWithLoading } from "../hooks/useLoadingHooks";
-import * as apiClient from "../api-client";
-import useAppContext from "../hooks/useAppContext";
-import { useNavigate, Link } from "react-router-dom";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  User,
-  UserPlus,
-  Sparkles,
-  CheckCircle,
-} from "lucide-react";
-import { useState } from "react";
-import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../components/ui/card";
-import { Label } from "../components/ui/label";
-import { Separator } from "../components/ui/separator";
-import { Badge } from "../components/ui/badge";
+/**
+ * hotel-booking-frontend/src/pages/Register.tsx
+ *
+ * ── Google + Register relationship ────────────────────────────────────────────
+ * There is NO separate "Google Register" button — this is by design.
+ * When a user clicks "Sign in with Google" on the SignIn page for the FIRST TIME,
+ * the backend (auth.ts /api/auth/google-login) automatically creates their account.
+ * So Google always handles both sign-in and sign-up in one flow.
+ *
+ * This Register page handles email + password account creation only.
+ *
+ * ── Payload: { firstName, lastName, email, password } ─────────────────────────
+ * Matches the backend POST /api/auth/register handler exactly.
+ *
+ * ── Toast: uses `title` key ───────────────────────────────────────────────────
+ * Confirmed working in AppContext.
+ */
 
-export type RegisterFormData = {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
+import { useState }          from "react";
+import { useForm }           from "react-hook-form";
+import { Link, useNavigate } from "react-router-dom";
+import * as apiClient        from "../api-client";
+import useAppContext         from "../hooks/useAppContext";
+import { Building2, Eye, EyeOff, Loader2, CheckCircle, LogIn } from "lucide-react";
+
+interface RegisterFormData {
+  firstName:       string;
+  lastName:        string;
+  email:           string;
+  password:        string;
   confirmPassword: string;
-};
+}
 
 const Register = () => {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
   const { showToast } = useAppContext();
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const navigate      = useNavigate();
+  const [showPwd,   setShowPwd]   = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
-    watch,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<RegisterFormData>();
 
-  const mutation = useMutationWithLoading(apiClient.register, {
-    onSuccess: async () => {
-      showToast({ 
-        title: "Registration Successful", 
-        description: "Your account has been created successfully! Welcome to MernHolidays.",
-        type: "SUCCESS" 
-      });
-      await queryClient.invalidateQueries("validateToken");
-      navigate("/");
-    },
-    onError: (error: Error) => {
-      showToast({ 
-        title: "Registration Failed", 
-        description: error.message,
-        type: "ERROR" 
-      });
-    },
-    loadingMessage: "Creating your account...",
-  });
-
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = async (data: RegisterFormData) => {
     setIsLoading(true);
-    mutation.mutate(data, {
-      onSettled: () => setIsLoading(false),
-    });
-  });
+    try {
+      const response = await apiClient.register({
+        firstName: data.firstName.trim(),
+        lastName:  data.lastName.trim(),
+        email:     data.email.trim().toLowerCase(),
+        password:  data.password,
+      });
 
-  const password = watch("password");
+      // Store token under both keys for api-client compatibility
+      if (response?.token) {
+        localStorage.setItem("auth_token", response.token);
+        localStorage.setItem("session_id",  response.token);
+      }
+
+      // `title` key — confirmed working in AppContext
+      showToast({ title: "Account created! Welcome to Stayease.", type: "SUCCESS" });
+      navigate("/");
+    } catch (err: any) {
+      showToast({
+        title: err?.message ?? "Registration failed. Please try again.",
+        type:  "ERROR",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-xl w-full space-y-8">
-        {/* Modern Card Container */}
-        <Card className="relative overflow-hidden border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
-          {/* Decorative Background Elements */}
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-500 to-primary-600"></div>
-          <div className="absolute -top-4 -right-4 w-24 h-24 bg-primary-100 rounded-full opacity-50"></div>
-          <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-primary-200 rounded-full opacity-30"></div>
+    <div className="min-h-screen bg-gradient-to-br from-teal-950 via-teal-900 to-emerald-900 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
 
-          {/* Header */}
-          <CardHeader className="text-center relative z-10 pb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-              <UserPlus className="w-8 h-8 text-white" />
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-flex items-center gap-2.5">
+            <div className="bg-white/15 p-2.5 rounded-xl">
+              <Building2 className="w-6 h-6 text-emerald-300" />
             </div>
-            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-              Join MernHolidays
-            </CardTitle>
-            <CardDescription className="text-gray-600">
-              Create your account to start booking
-            </CardDescription>
+            <span className="text-2xl font-extrabold text-white">Stayease</span>
+          </Link>
+          <h1 className="text-3xl font-bold text-white mt-6 mb-1">Create your account</h1>
+          <p className="text-teal-300 text-sm">Join thousands of travellers on Stayease</p>
+        </div>
 
-            {/* Development Notice */}
-            {!import.meta.env.PROD && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <p className="text-sm text-yellow-800">
-                  <strong>Development Note:</strong> Authentication state
-                  persists between sessions. If you're seeing a logged-in state
-                  unexpectedly, use the "Clear Auth" button in the header.
-                </p>
-              </div>
-            )}
-          </CardHeader>
-
-          {/* Form */}
-          <CardContent className="space-y-6">
-            <form className="space-y-6" onSubmit={onSubmit}>
-              {/* Name Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="firstName"
-                    className="text-sm font-semibold text-gray-700"
-                  >
-                    First Name
-                  </Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                      <User className="h-6 w-6 text-gray-600" />
-                    </div>
-                    <Input
-                      id="firstName"
-                      type="text"
-                      className="pl-10 pr-3 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                      placeholder="Enter first name"
-                      {...register("firstName", {
-                        required: "First name is required",
-                      })}
-                    />
-                  </div>
-                  {errors.firstName && (
-                    <div className="flex items-center mt-1">
-                      <Badge
-                        variant="outline"
-                        className="text-red-500 border-red-200 bg-red-50"
-                      >
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        {errors.firstName.message}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="lastName"
-                    className="text-sm font-semibold text-gray-700"
-                  >
-                    Last Name
-                  </Label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                      <User className="h-6 w-6 text-gray-600" />
-                    </div>
-                    <Input
-                      id="lastName"
-                      type="text"
-                      className="pl-10 pr-3 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                      placeholder="Enter last name"
-                      {...register("lastName", {
-                        required: "Last name is required",
-                      })}
-                    />
-                  </div>
-                  {errors.lastName && (
-                    <div className="flex items-center mt-1">
-                      <Badge
-                        variant="outline"
-                        className="text-red-500 border-red-200 bg-red-50"
-                      >
-                        <Sparkles className="w-4 h-4 mr-1" />
-                        {errors.lastName.message}
-                      </Badge>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="email"
-                  className="text-sm font-semibold text-gray-700"
-                >
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <Mail className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <Input
-                    id="email"
-                    type="email"
-                    className="pl-10 pr-3 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                    placeholder="Enter your email"
-                    {...register("email", { required: "Email is required" })}
-                  />
-                </div>
-                {errors.email && (
-                  <div className="flex items-center mt-1">
-                    <Badge
-                      variant="outline"
-                      className="text-red-500 border-red-200 bg-red-50"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      {errors.email.message}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="password"
-                  className="text-sm font-semibold text-gray-700"
-                >
-                  Password
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <Lock className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    className="pl-10 pr-12 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                    placeholder="Create a password"
-                    {...register("password", {
-                      required: "Password is required",
-                      minLength: {
-                        value: 6,
-                        message: "Password must be at least 6 characters",
-                      },
-                    })}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute inset-y-0 right-0 pr-3 h-full"
-                    onClick={() => setShowPassword(!showPassword)}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </Button>
-                </div>
-                {errors.password && (
-                  <div className="flex items-center mt-1">
-                    <Badge
-                      variant="outline"
-                      className="text-red-500 border-red-200 bg-red-50"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      {errors.password.message}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-2">
-                <Label
-                  htmlFor="confirmPassword"
-                  className="text-sm font-semibold text-gray-700"
-                >
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
-                    <Lock className="h-6 w-6 text-gray-600" />
-                  </div>
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    className="pl-10 pr-12 py-3 border border-gray-300 rounded-md text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                    placeholder="Confirm your password"
-                    {...register("confirmPassword", {
-                      validate: (val) => {
-                        if (!val) {
-                          return "Please confirm your password";
-                        } else if (password !== val) {
-                          return "Passwords do not match";
-                        }
-                      },
-                    })}
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="absolute inset-y-0 right-0 pr-3 h-full"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
-                    )}
-                  </Button>
-                </div>
-                {errors.confirmPassword && (
-                  <div className="flex items-center mt-1">
-                    <Badge
-                      variant="outline"
-                      className="text-red-500 border-red-200 bg-red-50"
-                    >
-                      <Sparkles className="w-4 h-4 mr-1" />
-                      {errors.confirmPassword.message}
-                    </Badge>
-                  </div>
-                )}
-                {password &&
-                  !errors.confirmPassword &&
-                  watch("confirmPassword") === password && (
-                    <div className="flex items-center mt-1">
-                      <Badge
-                        variant="outline"
-                        className="text-green-500 border-green-200 bg-green-50"
-                      >
-                        <CheckCircle className="w-4 h-4 mr-1" />
-                        Passwords match
-                      </Badge>
-                    </div>
-                  )}
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-md text-white bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-              >
-                {isLoading ? (
-                  <div className="flex items-center">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                    Creating account...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <UserPlus className="w-5 h-5 mr-2" />
-                    Create Account
-                  </div>
-                )}
-              </Button>
-
-              {/* Divider */}
-              <div className="relative my-6">
-                <Separator className="bg-gray-300" />
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">or</span>
-                </div>
-              </div>
-
-              {/* Sign In Link */}
-              <div className="text-center">
-                <p className="text-sm text-gray-600">
-                  Already have an account?{" "}
-                  <Link
-                    to="/sign-in"
-                    className="font-semibold text-primary-600 hover:text-primary-700 transition-colors duration-200 underline decoration-2 underline-offset-2"
-                  >
-                    Sign in here
-                  </Link>
-                </p>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Additional Info */}
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            By creating an account, you agree to our{" "}
-            <a href="#" className="text-primary-600 hover:underline">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-primary-600 hover:underline">
-              Privacy Policy
-            </a>
+        {/* Google tip banner */}
+        <div className="mb-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-3 flex items-start gap-3">
+          <LogIn className="w-4 h-4 text-emerald-300 flex-shrink-0 mt-0.5" />
+          <p className="text-teal-200 text-xs leading-relaxed">
+            <span className="font-semibold text-white">Have a Google account?</span>{" "}
+            No need to register separately — just{" "}
+            <Link to="/sign-in" className="text-emerald-300 font-semibold underline hover:text-white">
+              sign in with Google
+            </Link>{" "}
+            and your account will be created automatically.
           </p>
         </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-2xl p-8">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
+
+            {/* Name row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register("firstName", {
+                    required:  "First name is required",
+                    minLength: { value: 2, message: "At least 2 characters" },
+                  })}
+                  type="text"
+                  placeholder="Arjun"
+                  autoComplete="given-name"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                />
+                {errors.firstName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.firstName.message}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  {...register("lastName", {
+                    required:  "Last name is required",
+                    minLength: { value: 2, message: "At least 2 characters" },
+                  })}
+                  type="text"
+                  placeholder="Sharma"
+                  autoComplete="family-name"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                />
+                {errors.lastName && (
+                  <p className="text-red-500 text-xs mt-1">{errors.lastName.message}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Email address <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("email", {
+                  required: "Email is required",
+                  pattern:  { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: "Enter a valid email" },
+                })}
+                type="email"
+                placeholder="arjun@example.com"
+                autoComplete="email"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+              />
+              {errors.email && (
+                <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Password <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  {...register("password", {
+                    required:  "Password is required",
+                    minLength: { value: 6, message: "At least 6 characters required" },
+                  })}
+                  type={showPwd ? "text" : "password"}
+                  placeholder="Min. 6 characters"
+                  autoComplete="new-password"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+                />
+                <button type="button" onClick={() => setShowPwd((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {errors.password && (
+                <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            {/* Confirm password */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Confirm Password <span className="text-red-500">*</span>
+              </label>
+              <input
+                {...register("confirmPassword", {
+                  required: "Please confirm your password",
+                  validate: (v) => v === watch("password") || "Passwords do not match",
+                })}
+                type={showPwd ? "text" : "password"}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition"
+              />
+              {errors.confirmPassword && (
+                <p className="text-red-500 text-xs mt-1">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            {/* Hints */}
+            <ul className="text-xs text-gray-400 space-y-1">
+              {["At least 6 characters", "Mix of letters and numbers recommended"].map((rule) => (
+                <li key={rule} className="flex items-center gap-1.5">
+                  <CheckCircle className="w-3 h-3 text-teal-400 flex-shrink-0" />{rule}
+                </li>
+              ))}
+            </ul>
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold py-3 rounded-xl transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            >
+              {isLoading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Creating account…</>
+              ) : (
+                "Create Account"
+              )}
+            </button>
+
+            <p className="text-center text-sm text-gray-500 mt-4">
+              Already have an account?{" "}
+              <Link to="/sign-in" className="text-teal-600 font-semibold hover:text-teal-700">
+                Sign in
+              </Link>
+            </p>
+          </form>
+        </div>
+
+        <p className="text-center text-xs text-teal-400/70 mt-6">
+          By creating an account, you agree to our{" "}
+          <Link to="/terms" className="underline hover:text-teal-300">Terms of Service</Link>
+          {" "}and{" "}
+          <Link to="/privacy" className="underline hover:text-teal-300">Privacy Policy</Link>.
+        </p>
       </div>
     </div>
   );
