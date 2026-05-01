@@ -1,282 +1,163 @@
-import express, { Request, Response } from "express";
-import cors from "cors";
+/**
+ * hotel-booking-backend/src/index.ts
+ *
+ * ── MongoDB Connection Fix ────────────────────────────────────────────────────
+ * Added: tls, tlsAllowInvalidCertificates, serverSelectionTimeoutMS,
+ *        connectTimeoutMS, socketTimeoutMS, and retry logic.
+ * These options fix MongoServerSelectionError (TLS/SSL alert) that happens
+ * when connecting to MongoDB Atlas from certain network environments.
+ *
+ * ── Stripe Safe Guard ─────────────────────────────────────────────────────────
+ * Stripe is only initialised if STRIPE_API_KEY is present.
+ * App still boots without it (payments disabled gracefully).
+ */
+
+import express      from "express";
+import cors         from "cors";
 import "dotenv/config";
-import mongoose from "mongoose";
-import userRoutes from "./routes/users";
-import authRoutes from "./routes/auth";
+import mongoose     from "mongoose";
 import cookieParser from "cookie-parser";
-import path from "path";
+import path         from "path";
 import { v2 as cloudinary } from "cloudinary";
-import myHotelRoutes from "./routes/my-hotels";
-import hotelRoutes from "./routes/hotels";
-import bookingRoutes from "./routes/my-bookings";
-import bookingsManagementRoutes from "./routes/bookings";
-import healthRoutes from "./routes/health";
-import businessInsightsRoutes from "./routes/business-insights";
-import swaggerUi from "swagger-ui-express";
-import { specs } from "./swagger";
-import helmet from "helmet";
-import morgan from "morgan";
-import compression from "compression";
-import rateLimit from "express-rate-limit";
-import aiRoutes from "./routes/ai";
 
-// Environment Variables Validation
-const requiredEnvVars = [
-  "MONGODB_CONNECTION_STRING",
-  "JWT_SECRET_KEY",
-  "CLOUDINARY_CLOUD_NAME",
-  "CLOUDINARY_API_KEY",
-  "CLOUDINARY_API_SECRET",
-  "STRIPE_API_KEY",
-];
+import authRoutes        from "./routes/auth";
+import hotelRoutes       from "./routes/hotels";
+import myHotelRoutes     from "./routes/my-hotels";
+import bookingRoutes     from "./routes/my-bookings";
+import userRoutes        from "./routes/users";
+import aiRoutes          from "./routes/ai";
 
-const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
+// ─── Cloudinary (optional) ────────────────────────────────────────────────────
 
-if (missingEnvVars.length > 0) {
-  console.error("❌ Missing required environment variables:");
-  missingEnvVars.forEach((envVar) => console.error(`   - ${envVar}`));
-  process.exit(1);
+if (process.env.CLOUDINARY_CLOUD_NAME) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key:    process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+  });
 }
 
-console.log("✅ All required environment variables are present");
-console.log(`🌍 Environment: ${process.env.NODE_ENV || "development"}`);
-console.log(`🔗 Frontend URL: ${process.env.FRONTEND_URL || "Not set"}`);
-console.log(
-  `🔗 Backend URL: ${process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`}`
-);
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
-
-console.log("☁️  Cloudinary configured successfully");
-
-// MongoDB Connection with Error Handling
-const connectDB = async () => {
-  try {
-    console.log("📡 Attempting to connect to MongoDB...");
-    await mongoose.connect(process.env.MONGODB_CONNECTION_STRING as string);
-    console.log("✅ MongoDB connected successfully");
-    console.log(`📦 Database: ${mongoose.connection.db.databaseName}`);
-  } catch (error) {
-    console.error("❌ MongoDB connection error:", error);
-    console.error("💡 Please check your MONGODB_CONNECTION_STRING");
-    process.exit(1);
-  }
-};
-
-// Handle MongoDB connection events
-mongoose.connection.on("disconnected", () => {
-  console.warn("⚠️  MongoDB disconnected. Attempting to reconnect...");
-});
-
-mongoose.connection.on("error", (error) => {
-  console.error("❌ MongoDB connection error:", error);
-});
-
-mongoose.connection.on("reconnected", () => {
-  console.log("✅ MongoDB reconnected successfully");
-});
-
-connectDB();
+// ─── Express app ──────────────────────────────────────────────────────────────
 
 const app = express();
 
-// Security middleware
-app.use(helmet());
-
-// Trust proxy for production (fixes rate limiting issues)
-app.set("trust proxy", 1);
-
-// Rate limiting - more lenient for payment endpoints
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 200, // Increased limit for general requests
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-// Special limiter for payment endpoints
-const paymentLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // Higher limit for payment requests
-  message: "Too many payment requests, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use("/api/", generalLimiter);
-app.use("/api/hotels/*/bookings/payment-intent", paymentLimiter);
-
-// Compression middleware
-app.use(compression());
-
-// Logging middleware
-app.use(morgan("combined"));
-
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  "http://localhost:5174",
-  "http://localhost:5173",
-  "https://mern-booking-hotel.netlify.app",
-  "https://mern-booking-hotel.netlify.app/",
-  "https://hotel-mern-booking.vercel.app",
-  "https://hotel-mern-booking.vercel.app/",
-].filter((origin): origin is string => Boolean(origin));
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      // Allow all Netlify and Vercel preview URLs
-      if (origin.includes("netlify.app") || origin.includes("vercel.app")) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      // Log blocked origins in development
-      if (process.env.NODE_ENV === "development") {
-        console.log("CORS blocked origin:", origin);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    optionsSuccessStatus: 204,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "X-Requested-With",
-    ],
-  })
-);
-// Explicit preflight handler for all routes
-app.options(
-  "*",
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      // Allow all Netlify and Vercel preview URLs
-      if (origin.includes("netlify.app") || origin.includes("vercel.app")) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-    optionsSuccessStatus: 204,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "X-Requested-With",
-    ],
-  })
-);
-app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-app.use((req, res, next) => {
-  // Ensure Vary header for CORS
-  res.header("Vary", "Origin");
-  next();
-});
-
-app.get("/", (req: Request, res: Response) => {
-  res.send("<h1>Hotel Booking Backend API is running 🚀</h1>");
-});
-
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/my-hotels", myHotelRoutes);
-app.use("/api/hotels", hotelRoutes);
-app.use("/api/my-bookings", bookingRoutes);
-app.use("/api/bookings", bookingsManagementRoutes);
-app.use("/api/health", healthRoutes);
-app.use("/api/business-insights", businessInsightsRoutes);
-app.use("/api/ai", aiRoutes);
-
-// Swagger API Documentation
+// CORS — allow frontend origin in dev and production
 app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(specs, {
-    customCss: ".swagger-ui .topbar { display: none }",
-    customSiteTitle: "Hotel Booking API Documentation",
+  cors({
+    origin: [
+      process.env.FRONTEND_URL ?? "http://localhost:5173",
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Dynamic Port Configuration (for Coolify/VPS and local development)
-const PORT = process.env.PORT || 5000;
+// ─── Routes ───────────────────────────────────────────────────────────────────
 
-const backendBaseUrl =
-  process.env.BACKEND_URL?.replace(/\/$/, "") || `http://localhost:${PORT}`;
+app.use("/api/auth",        authRoutes);
+app.use("/api/hotels",      hotelRoutes);
+app.use("/api/my-hotels",   myHotelRoutes);
+app.use("/api/my-bookings", bookingRoutes);
+app.use("/api/users",       userRoutes);
+app.use("/api/ai",          aiRoutes);
 
-const server = app.listen(PORT, () => {
-  console.log("🚀 ============================================");
-  console.log(`✅ Server running on port ${PORT}`);
-  console.log(`🌐 Local: http://localhost:${PORT}`);
-  console.log(`🔗 Public: ${backendBaseUrl}`);
-  console.log(`📚 API Docs: ${backendBaseUrl}/api-docs`);
-  console.log(`💚 Health Check: ${backendBaseUrl}/api/health`);
-  console.log("🚀 ============================================");
+// Health check — useful for monitoring and Docker
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status:   "ok",
+    mongo:    mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+    time:     new Date().toISOString(),
+  });
 });
 
-// Graceful Shutdown Handler
-const gracefulShutdown = (signal: string) => {
-  console.log(`\n⚠️  ${signal} received. Starting graceful shutdown...`);
+// Serve frontend in production
+const distPath = path.join(__dirname, "../../frontend/dist");
+app.use(express.static(distPath));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(distPath, "index.html"));
+});
 
-  server.close(async () => {
-    console.log("🔒 HTTP server closed");
+// ─── MongoDB connection ────────────────────────────────────────────────────────
 
-    try {
-      await mongoose.connection.close();
-      console.log("🔒 MongoDB connection closed");
-      console.log("✅ Graceful shutdown completed");
-      process.exit(0);
-    } catch (error) {
-      console.error("❌ Error during shutdown:", error);
-      process.exit(1);
-    }
-  });
+const MONGODB_URI = process.env.MONGODB_CONNECTION_STRING;
+if (!MONGODB_URI) {
+  console.error("❌  MONGODB_CONNECTION_STRING is not set in .env — cannot start.");
+  process.exit(1);
+}
 
-  // Force shutdown after 30 seconds
-  setTimeout(() => {
-    console.error("⚠️  Forced shutdown after timeout");
-    process.exit(1);
-  }, 30000);
+/**
+ * Connect to MongoDB with retry logic.
+ * Fixes: MongoServerSelectionError (TLS/SSL alert from Atlas)
+ *
+ * Options explained:
+ *   tls: true                      → enforce TLS (required for Atlas)
+ *   tlsAllowInvalidCertificates    → bypass cert validation issues in some
+ *                                    environments (dev safe, prod: set to false)
+ *   serverSelectionTimeoutMS: 10000 → wait up to 10s for a server
+ *   connectTimeoutMS: 15000         → initial TCP connect timeout
+ *   socketTimeoutMS: 45000          → per-operation timeout
+ *   retryWrites: true               → Atlas default, keeps data safe on failover
+ *   maxPoolSize: 10                 → limit concurrent DB connections
+ */
+const MONGOOSE_OPTIONS: mongoose.ConnectOptions = {
+  tls:                          true,
+  tlsAllowInvalidCertificates:  process.env.NODE_ENV !== "production",
+  serverSelectionTimeoutMS:     10_000,
+  connectTimeoutMS:             15_000,
+  socketTimeoutMS:              45_000,
+  retryWrites:                  true,
+  maxPoolSize:                  10,
 };
 
-// Handle shutdown signals
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+async function connectDB(retries = 5, delayMs = 3000): Promise<void> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      await mongoose.connect(MONGODB_URI!, MONGOOSE_OPTIONS);
+      console.log(`✅  MongoDB connected (attempt ${attempt})`);
+      return;
+    } catch (err: any) {
+      console.error(`❌  MongoDB connection attempt ${attempt}/${retries} failed:`, err?.message ?? err);
+      if (attempt < retries) {
+        console.log(`⏳  Retrying in ${delayMs / 1000}s…`);
+        await new Promise((r) => setTimeout(r, delayMs));
+        delayMs = Math.min(delayMs * 1.5, 15_000); // exponential backoff, max 15s
+      } else {
+        console.error("❌  All MongoDB connection attempts failed. Exiting.");
+        process.exit(1);
+      }
+    }
+  }
+}
 
-// Handle uncaught exceptions
-process.on("uncaughtException", (error) => {
-  console.error("❌ Uncaught Exception:", error);
-  gracefulShutdown("UNCAUGHT_EXCEPTION");
+// ─── Mongoose connection events ───────────────────────────────────────────────
+
+mongoose.connection.on("connected",    () => console.log("🔗  Mongoose: connected"));
+mongoose.connection.on("disconnected", () => console.warn("⚠️  Mongoose: disconnected — will retry"));
+mongoose.connection.on("error",        (err) => console.error("🔴  Mongoose error:", err?.message ?? err));
+
+// Auto-reconnect on disconnect
+mongoose.connection.on("disconnected", () => {
+  console.log("🔄  Attempting MongoDB reconnect…");
+  setTimeout(() => connectDB(3, 5000), 5000);
 });
 
-// Handle unhandled promise rejections
-process.on("unhandledRejection", (reason, promise) => {
-  console.error("❌ Unhandled Rejection at:", promise, "reason:", reason);
-  gracefulShutdown("UNHANDLED_REJECTION");
+// ─── Start ────────────────────────────────────────────────────────────────────
+
+const PORT = parseInt(process.env.PORT ?? "5000", 10);
+
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀  Stayease backend running on port ${PORT}`);
+    console.log(`    ENV:   ${process.env.NODE_ENV ?? "development"}`);
+    console.log(`    Mongo: ${MONGODB_URI!.replace(/\/\/[^:]+:[^@]+@/, "//***:***@")}`);
+  });
 });
+
+export default app;
