@@ -1,45 +1,32 @@
 /**
  * hotel-booking-frontend/src/components/SearchResultsCard.tsx
  *
- * ── What changed ──────────────────────────────────────────────────────────────
+ * ── Currency fix ──────────────────────────────────────────────────────────────
+ * DB hotels:    formatINR(hotel.pricePerNight)  → always ₹, no conversion
+ * External:     formatExternal(hotel.pricePerNight, hotel.currency) → API currency
  *
- * 1. REMOVED "View on Booking.com" button — it is gone entirely.
- *
- * 2. External hotels now show:
- *    • "External Hotel" badge next to type chips (neutral, no brand reference)
- *    • "🌍 Worldwide" badge on the image overlay
- *    • Hotel name links to /detail/booking_<id> — same internal route as DB hotels
- *    • Action button: "View Details · Pay at Hotel" (emerald) → /detail/booking_<id>
- *    • Caches hotel data in window.__externalHotelCache so Detail page loads instantly
- *
- * 3. DB hotels: zero behaviour change.
- *    • Name links to /detail/:id
- *    • Action button: "View Details & Book" (primary blue) → /detail/:id
- *
- * 4. Price uses CurrencyContext (GBP/USD/INR).
- *
- * 5. "Price on request" shown when pricePerNight === 0 (never hardcoded).
+ * ── Everything else unchanged ─────────────────────────────────────────────────
+ * Source detection, cache population, booking flow, teal/emerald theme.
  */
 
-import { Link }          from "react-router-dom";
-import { HotelType }     from "../../../shared/types";
-import { AiFillStar }    from "react-icons/ai";
+import { Link }        from "react-router-dom";
+import { HotelType }   from "../../../shared/types";
+import { AiFillStar }  from "react-icons/ai";
 import {
   MapPin, Building2, Users, Wifi, Car, Waves,
   Dumbbell, Sparkles, UtensilsCrossed, Coffee, Plane, Building,
-  CreditCard,
+  CreditCard, ArrowRight,
 } from "lucide-react";
-import { Badge }         from "./ui/badge";
-import { useCurrency }   from "../contexts/CurrencyContext";
+import { Badge }       from "./ui/badge";
+import { useCurrency } from "../contexts/CurrencyContext";
 
-// ─── Extended hotel type ───────────────────────────────────────────────────────
-// Extends HotelType without modifying it. All new fields are optional so
-// existing code passing plain HotelType continues to compile.
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type HotelWithSource = HotelType & {
   source?:         "db" | "external";
   bookingHotelId?: number;
   bookingUrl?:     string;
+  currency?:       string;
 };
 
 type Props = { hotel: HotelWithSource };
@@ -64,13 +51,21 @@ function getFacilityIcon(facility: string) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const SearchResultsCard = ({ hotel }: Props) => {
-  const { format, formatExternal } = useCurrency();
+  // ── CURRENCY FIX ────────────────────────────────────────────────────────────
+  // formatINR      → DB hotels: price already in INR, just prefix ₹, no math
+  // formatExternal → External hotels: use the API's own currency field
+  const { formatINR, formatExternal } = useCurrency();
 
   const isExternal = hotel.source === "external";
   const hasPrice   = (hotel.pricePerNight ?? 0) > 0;
   const detailUrl  = `/detail/${hotel._id}`;
 
-  // Cache external hotel data so Detail page can hydrate instantly from it
+  // ── Price display — correct for BOTH sources ──────────────────────────────
+  const formattedPrice = isExternal
+    ? formatExternal(hotel.pricePerNight, hotel.currency ?? "GBP")
+    : formatINR(hotel.pricePerNight);           // ← was format() before (wrong GBP conversion)
+
+  // Populate browser cache so Detail page hydrates without extra API call
   if (isExternal && hotel._id) {
     window.__externalHotelCache = window.__externalHotelCache ?? {};
     if (!window.__externalHotelCache[hotel._id]) {
@@ -79,13 +74,21 @@ const SearchResultsCard = ({ hotel }: Props) => {
   }
 
   return (
-    <div className="group bg-white rounded-2xl shadow-soft hover:shadow-large transition-all duration-300 border border-gray-100 overflow-hidden h-auto xl:h-[500px] flex">
+    <div className="
+      group bg-white rounded-2xl border border-gray-100
+      shadow-sm hover:shadow-xl hover:border-teal-100
+      transition-all duration-300 overflow-hidden
+      h-auto xl:h-[500px] flex
+    ">
       <div className="grid grid-cols-1 xl:grid-cols-[2fr_3fr] gap-0 w-full h-full">
 
-        {/* ── Image ──────────────────────────────────────────────────────── */}
+        {/* ── Image ──────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden h-64 xl:h-[500px]">
           <img
-            src={hotel.imageUrls?.[0] ?? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"}
+            src={
+              hotel.imageUrls?.[0] ??
+              "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80"
+            }
             className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
             alt={hotel.name}
             loading="lazy"
@@ -95,153 +98,164 @@ const SearchResultsCard = ({ hotel }: Props) => {
             }}
           />
 
-          {/* Top-left overlay badges */}
-          <div className="absolute top-4 left-4 flex flex-col space-y-2">
+          {/* Gradient scrim */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-black/10 pointer-events-none" />
 
-            {/* Price badge — from API, never hardcoded */}
+          {/* Top-left: price + featured + source badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {hasPrice ? (
-              <div className={`${isExternal ? "bg-emerald-600" : "bg-primary-600"} text-white rounded-full px-3 py-1`}>
-                <span className="text-sm font-bold">
-                  {isExternal
-                    ? formatExternal(hotel.pricePerNight, hotel.currency ?? "INR")
-                    : format(hotel.pricePerNight)
-                  }/night
-                </span>
+              <div className={`
+                ${isExternal ? "bg-emerald-600" : "bg-teal-700"}
+                text-white text-sm font-bold rounded-full px-3 py-1 shadow
+              `}>
+                {formattedPrice}<span className="font-normal opacity-80">/night</span>
               </div>
             ) : (
-              <div className="bg-gray-600/80 text-white rounded-full px-3 py-1">
-                <span className="text-xs font-medium">Price on request</span>
+              <div className="bg-gray-700/80 text-white text-xs font-medium rounded-full px-3 py-1">
+                Price on request
               </div>
             )}
 
             {hotel.isFeatured && (
-              <div className="bg-yellow-500 text-white rounded-full px-3 py-1">
-                <span className="text-xs font-bold">Featured</span>
+              <div className="bg-amber-500 text-white text-xs font-bold rounded-full px-3 py-1">
+                ⭐ Featured
               </div>
             )}
 
-            {/* External source indicator — no brand name */}
             {isExternal && (
-              <div className="bg-emerald-500/90 backdrop-blur-sm text-white rounded-full px-3 py-1">
-                <span className="text-xs font-bold">🌍 Worldwide</span>
+              <div className="bg-emerald-500/90 backdrop-blur-sm text-white text-xs font-bold rounded-full px-3 py-1">
+                🌍 Worldwide
               </div>
             )}
           </div>
 
-          {/* Star rating — top-right */}
-          <div className="absolute top-4 right-4">
-            <div className="bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 flex items-center space-x-1">
-              <AiFillStar className="w-4 h-4 text-yellow-500" />
+          {/* Top-right: star rating */}
+          <div className="absolute top-3 right-3">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow">
+              <AiFillStar className="w-3.5 h-3.5 text-amber-500" />
               <span className="text-sm font-semibold text-gray-800">{hotel.starRating ?? 0}</span>
             </div>
           </div>
         </div>
 
-        {/* ── Content ────────────────────────────────────────────────────── */}
-        <div className="p-6 flex flex-col justify-between h-auto xl:h-full overflow-hidden">
-          <div className="space-y-4 overflow-y-auto xl:flex-1">
+        {/* ── Content ────────────────────────────────────────────────── */}
+        <div className="p-6 flex flex-col justify-between h-auto xl:h-full">
+          <div className="space-y-3.5 flex-1">
 
             {/* Stars + type chips + source badge */}
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                <span className="flex">
-                  {Array.from({ length: Math.min(hotel.starRating ?? 0, 5) }).map((_, i) => (
-                    <AiFillStar key={i} className="w-4 h-4 text-yellow-400" />
-                  ))}
-                </span>
-                <div className="flex flex-wrap gap-1">
-                  {(Array.isArray(hotel.type) ? hotel.type.slice(0, 4) : [hotel.type]).filter(Boolean).map((t) => (
-                    <Badge key={t} variant="default" className="text-xs px-2 py-1">{t}</Badge>
-                  ))}
-                </div>
-                {/* "External Hotel" label — neutral badge, no brand reference */}
-                {isExternal && (
-                  <Badge className="text-xs px-2 py-1 bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    External Hotel
+            <div className="flex items-center flex-wrap gap-1.5">
+              <span className="flex gap-0.5">
+                {Array.from({ length: Math.min(hotel.starRating ?? 0, 5) }).map((_, i) => (
+                  <AiFillStar key={i} className="w-3.5 h-3.5 text-amber-400" />
+                ))}
+              </span>
+              {(Array.isArray(hotel.type) ? hotel.type.slice(0, 3) : [hotel.type])
+                .filter(Boolean)
+                .map((t) => (
+                  <Badge
+                    key={t}
+                    variant="outline"
+                    className="text-xs px-2 py-0.5 border-teal-200 text-teal-700 bg-teal-50"
+                  >
+                    {t}
                   </Badge>
-                )}
-              </div>
+                ))}
+              {isExternal && (
+                <Badge className="text-xs px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  External
+                </Badge>
+              )}
+            </div>
 
-              {/* Hotel name — both DB and external link to internal detail page */}
-              <Link
-                to={detailUrl}
-                className="text-2xl font-bold text-gray-900 hover:text-primary-600 transition-colors cursor-pointer block leading-tight"
-              >
-                {hotel.name}
-              </Link>
+            {/* Hotel name */}
+            <Link
+              to={detailUrl}
+              className="text-xl font-bold text-gray-900 hover:text-teal-700 transition-colors leading-snug block"
+            >
+              {hotel.name}
+            </Link>
 
-              <div className="flex items-center text-gray-600">
-                <MapPin className="w-4 h-4 mr-1 flex-shrink-0" />
-                <span className="text-sm">{hotel.city}, {hotel.country}</span>
-              </div>
+            {/* Location */}
+            <div className="flex items-center gap-1 text-gray-500">
+              <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="text-sm">{hotel.city}, {hotel.country}</span>
             </div>
 
             {/* Description */}
-            <p className="text-gray-600 leading-relaxed line-clamp-3 text-sm">
+            <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">
               {hotel.description}
             </p>
 
             {/* Stats */}
-            <div className="flex items-center space-x-6 text-sm text-gray-600 flex-wrap gap-y-1">
+            <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
               {(hotel.totalBookings ?? 0) > 0 && !isExternal && (
-                <div className="flex items-center space-x-1">
-                  <Users className="w-4 h-4" />
-                  <span>{hotel.totalBookings} bookings</span>
-                </div>
-              )}
-              <div className="flex items-center space-x-1">
-                <AiFillStar className="w-4 h-4 text-yellow-400" />
-                <span>
-                  {(hotel.averageRating ?? 0) > 0
-                    ? `${hotel.averageRating!.toFixed(1)} avg rating`
-                    : "No ratings yet"}
+                <span className="flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5" />
+                  {hotel.totalBookings} bookings
                 </span>
-              </div>
-              {isExternal && (hotel.reviewCount ?? 0) > 0 && (
-                <span className="text-xs text-gray-500">
-                  ({hotel.reviewCount!.toLocaleString()} reviews)
+              )}
+              {(hotel.averageRating ?? 0) > 0 && (
+                <span className="flex items-center gap-1">
+                  <AiFillStar className="w-3.5 h-3.5 text-amber-400" />
+                  {hotel.averageRating!.toFixed(1)} rating
+                  {isExternal && hotel.reviewCount ? ` (${hotel.reviewCount.toLocaleString()})` : ""}
                 </span>
               )}
             </div>
           </div>
 
           {/* Facilities */}
-          <div className="mt-6">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Key Amenities</h4>
-            <div className="flex flex-wrap gap-2">
-              {(hotel.facilities ?? []).slice(0, 6).map((facility) => {
+          <div className="mt-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Amenities
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {(hotel.facilities ?? []).slice(0, 5).map((facility) => {
                 const Icon = getFacilityIcon(facility);
                 return (
-                  <Badge key={facility} variant="outline" className="flex items-center space-x-1.5 px-3 py-1.5 text-xs">
-                    <Icon className="w-3 h-3 text-primary-600" />
-                    <span>{facility}</span>
-                  </Badge>
+                  <span
+                    key={facility}
+                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full border border-gray-200 text-gray-600 bg-gray-50"
+                  >
+                    <Icon className="w-3 h-3 text-teal-600" />
+                    {facility}
+                  </span>
                 );
               })}
             </div>
           </div>
 
-          {/* Action button */}
-          <div className="mt-6 pt-4 border-t border-gray-100">
+          {/* CTA button */}
+          <div className="mt-5 pt-4 border-t border-gray-100">
             {isExternal ? (
-              /*
-               * External hotel: internal detail page with "Pay at Hotel" context.
-               * NO "View on Booking.com" button — removed entirely.
-               */
               <Link
                 to={detailUrl}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-emerald-700 hover:to-emerald-800 transform hover:scale-105 transition-all duration-200 text-center"
+                className="
+                  w-full flex items-center justify-center gap-2
+                  bg-gradient-to-r from-emerald-600 to-teal-600
+                  hover:from-emerald-700 hover:to-teal-700
+                  text-white text-sm font-semibold py-2.5 px-5 rounded-xl
+                  transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/20
+                  active:scale-[0.98]
+                "
               >
                 <CreditCard className="w-4 h-4" />
                 View Details · Pay at Hotel
               </Link>
             ) : (
-              /* DB hotel: existing Stripe booking flow — unchanged */
               <Link
                 to={detailUrl}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transform hover:scale-105 transition-all duration-200 text-center block"
+                className="
+                  w-full flex items-center justify-center gap-2
+                  bg-gradient-to-r from-teal-600 to-teal-700
+                  hover:from-teal-700 hover:to-teal-800
+                  text-white text-sm font-semibold py-2.5 px-5 rounded-xl
+                  transition-all duration-200 hover:shadow-lg hover:shadow-teal-500/20
+                  active:scale-[0.98]
+                "
               >
                 View Details & Book
+                <ArrowRight className="w-4 h-4" />
               </Link>
             )}
           </div>
@@ -251,7 +265,7 @@ const SearchResultsCard = ({ hotel }: Props) => {
   );
 };
 
-// Extend Window for the external hotel cache
+// Window type augmentation
 declare global {
   interface Window { __externalHotelCache?: Record<string, any>; }
 }

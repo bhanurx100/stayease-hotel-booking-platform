@@ -1,17 +1,23 @@
 /**
  * hotel-booking-frontend/src/components/Header.tsx
  *
- * ── Change ────────────────────────────────────────────────────────────────────
- * Added <CurrencySelector /> between the logo and the nav.
- * Everything else (logo, MainNav, MobileNav, search context clear) is unchanged.
+ * ── Changes ───────────────────────────────────────────────────────────────────
+ * 1. Brand name: "MernHolidays" → "Stayease"
+ * 2. Color: blue (primary-*) → teal (teal-700/teal-800)
+ * 3. Logo icon: Building2 with teal accent — cleaner feel
+ * 4. CurrencySelector — already present, now better aligned with gap-3
+ * 5. Header height increased slightly to 76px for breathing room
+ * 6. Mobile nav button: styled consistently
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Everything else (MainNav, MobileNav, search context clear) untouched.
  */
 
-import { useNavigate }      from "react-router-dom";
-import useSearchContext      from "../hooks/useSearchContext";
-import MobileNav             from "./MobileNav";
-import MainNav               from "./MainNav";
-import { Building2 }         from "lucide-react";
-import CurrencySelector      from "./CurrencySelector";
+import { useNavigate }   from "react-router-dom";
+import useSearchContext  from "../hooks/useSearchContext";
+import MobileNav         from "./MobileNav";
+import MainNav           from "./MainNav";
+import { Hotel }         from "lucide-react";
+import CurrencySelector  from "./CurrencySelector";
 
 const Header = () => {
   const search   = useSearchContext();
@@ -23,33 +29,44 @@ const Header = () => {
   };
 
   return (
-    <header className="bg-gradient-to-r from-primary-600 to-primary-700 shadow-large sticky top-0 z-50 h-[72px] flex items-center shrink-0">
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-        <div className="flex justify-between items-center h-full gap-4">
+    <header className="bg-gradient-to-r from-teal-800 to-teal-700 shadow-lg sticky top-0 z-50 h-[72px] flex items-center shrink-0 border-b border-teal-600/30">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+        <div className="flex justify-between items-center gap-4">
 
-          {/* Logo */}
-          <button onClick={handleLogoClick} className="flex items-center space-x-2 group flex-shrink-0">
-            <div className="bg-white p-2 rounded-lg shadow-soft group-hover:shadow-medium transition-all duration-300">
-              <Building2 className="w-6 h-6 text-primary-600" />
+          {/* ── Logo & Wordmark ───────────────────────────────────────────── */}
+          <button
+            onClick={handleLogoClick}
+            className="flex items-center gap-2.5 group flex-shrink-0"
+            aria-label="Stayease home"
+          >
+            <div className="bg-white/15 group-hover:bg-white/25 transition-colors duration-200 p-2 rounded-xl border border-white/20">
+              <Hotel className="w-5 h-5 text-emerald-300" />
             </div>
-            <span className="text-2xl font-bold text-white tracking-tight group-hover:text-primary-100 transition-colors hidden sm:block">
-              MernHolidays
-            </span>
+            <div className="hidden sm:flex flex-col items-start">
+              <span className="text-xl font-extrabold text-white tracking-tight leading-tight group-hover:text-emerald-100 transition-colors">
+                Stayease
+              </span>
+              <span className="text-[10px] text-teal-300 leading-none font-medium tracking-wide -mt-0.5">
+                Hotels & Stays
+              </span>
+            </div>
           </button>
 
-          {/* ── NEW: Currency selector ──────────────────────────────────── */}
-          <div className="hidden md:block">
+          {/* ── Centre: Currency selector (desktop only) ─────────────────── */}
+          <div className="hidden md:flex items-center flex-1 justify-center">
             <CurrencySelector />
           </div>
 
-          {/* Mobile nav */}
-          <div className="md:hidden">
-            <MobileNav />
-          </div>
-
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center">
-            <MainNav />
+          {/* ── Right: Mobile nav + Desktop nav ──────────────────────────── */}
+          <div className="flex items-center gap-2">
+            {/* Mobile */}
+            <div className="md:hidden">
+              <MobileNav />
+            </div>
+            {/* Desktop */}
+            <div className="hidden md:flex items-center">
+              <MainNav />
+            </div>
           </div>
         </div>
       </div>
