@@ -78,10 +78,10 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Serve frontend in production
-const distPath = path.join(__dirname, "../../frontend/dist");
-app.use(express.static(distPath));
-app.get("*", (_req, res) => {
-  res.sendFile(path.join(distPath, "index.html"));
+const frontendPath = path.join(__dirname, "../../hotel-booking-frontend/dist");
+app.use(express.static(frontendPath));
+app.get("*", (_, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // ─── MongoDB connection ────────────────────────────────────────────────────────

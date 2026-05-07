@@ -32,12 +32,12 @@
  *   RAPID_API_KEY=<your key>
  *   RAPID_API_HOST=booking-com.p.rapidapi.com
  */
+import axios from "axios";
 
-import axios, { AxiosInstance } from "axios";
 
 // ─── Axios factory ────────────────────────────────────────────────────────────
 
-function buildClient(): AxiosInstance {
+function buildClient(){
   const apiKey  = process.env.RAPID_API_KEY ?? "";
   const apiHost = process.env.RAPID_API_HOST ?? "booking-com.p.rapidapi.com";
   return axios.create({

@@ -298,6 +298,24 @@ export const fetchHotelById = async (hotelId: string): Promise<HotelType> => {
   return response.data;
 };
 
+/**
+ * Fetch fully enriched hotel details from /api/hotels/details/:id.
+ * Returns EnrichedHotel with rooms, pricing, reviews, nearby, images from
+ * RapidAPI + Google Places + (optionally) Tripadvisor + Expedia.
+ * Works for both DB hotels and external (booking_*) hotels.
+ */
+export const getHotelDetail = async (hotelId: string): Promise<any> => {
+  console.log("[getHotelDetail] fetching details for:", hotelId);
+  try {
+    const response = await axiosInstance.get(`/api/hotels/details/${hotelId}`);
+    console.log("[getHotelDetail] received:", response.data?.name, "source:", response.data?.source);
+    return response.data;
+  } catch (err: any) {
+    console.error("[getHotelDetail] error:", err?.response?.data?.message ?? err?.message);
+    throw err;
+  }
+};
+
 // ─── Bookings ─────────────────────────────────────────────────────────────────
 
 export const createPaymentIntent = async (

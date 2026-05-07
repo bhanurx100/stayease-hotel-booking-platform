@@ -38,6 +38,11 @@ import {
   NearbyPlace,
 } from "./googlePlacesService";
 
+// ─── NEW IMPORTS FOR enrichHotelData ─────────────────────────────
+import { getTripadvisorData, normalizeTripadvisor, TripadvisorHotelData, NormalizedTAReview } from "./tripadvisorService";
+import { getExpediaData, normalizeExpedia, ExpediaHotelData } from "./expediaService";
+import { extractBookingDetails, extractGoogleDetails, BookingExtract, GoogleExtract } from "./bookingExtractors";
+
 // ─── Static fallback images ────────────────────────────────────────────────────
 
 const STATIC_FALLBACKS = [
@@ -186,6 +191,60 @@ export interface EnrichedHotel {
   pricing:        PricingBreakdown;
   reviewsSummary: ReviewsSummary;
 }
+// ─────────────────────────────────────────────────────────────────────────────
+// NEW INTERFACES FOR enrichHotelData (ADDITIVE — NO CONFLICT)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface NearbyItem {
+  name: string;
+  type: string;
+  vicinity: string;
+  rating?: number;
+  placeId: string;
+}
+
+export interface ExtraRating {
+  overall: number;
+  ratingWord: string;
+  totalReviews: number;
+  categories: {
+    cleanliness: number;
+    location: number;
+    rooms: number;
+    service: number;
+    value: number;
+    sleepQuality: number;
+  };
+}
+
+export interface HotelExtra {
+  images: string[];
+  amenities: string[];
+  reviews: EnrichedReview[];
+  rating: ExtraRating;
+  location: { lat: number; lng: number; address: string } | null;
+  nearby: {
+    restaurants: NearbyItem[];
+    attractions: NearbyItem[];
+    transport: NearbyItem[];
+    shopping: NearbyItem[];
+  };
+  rooms: RoomType[];
+  pricing: PricingBreakdown;
+  policies: {
+    checkIn: string;
+    checkOut: string;
+    cancellation: string;
+    children: string;
+    pets: string;
+  };
+  reviewsSummary: ReviewsSummary;
+}
+
+export interface EnrichedWithExtra {
+  extra: HotelExtra;
+  [key: string]: any; // baseHotel fields pass through untouched
+}
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
@@ -201,6 +260,30 @@ function getFromCache(key: string): EnrichedHotel | undefined {
 }
 function setInCache(key: string, data: EnrichedHotel): void {
   cache.set(key, { data, expiresAt: Date.now() + TTL_MS });
+}
+// ─── EXTRA CACHE FOR enrichHotelData ───────────────────────────────────────
+
+const EXTRA_TTL = 10 * 60 * 1_000; // 10 minutes
+
+interface ExtraEntry {
+  data: HotelExtra;
+  expiresAt: number;
+}
+
+const extraCache = new Map<string, ExtraEntry>();
+
+function getExtraFromCache(key: string): HotelExtra | undefined {
+  const e = extraCache.get(key);
+  if (!e) return undefined;
+  if (Date.now() > e.expiresAt) {
+    extraCache.delete(key);
+    return undefined;
+  }
+  return e.data;
+}
+
+function setExtraInCache(key: string, data: HotelExtra): void {
+  extraCache.set(key, { data, expiresAt: Date.now() + EXTRA_TTL });
 }
 
 // ─── Amenity grouping ─────────────────────────────────────────────────────────
@@ -559,6 +642,62 @@ function groupNearby(places: NearbyPlace[]) {
   };
 }
 
+// ─── NEW HELPERS FOR enrichHotelData ───────────────────────────────────────
+
+function safeResult<T>(r: PromiseSettledResult<T | null>): T | null {
+  return r.status === "fulfilled" ? r.value : null;
+}
+
+function dedupeImages(sources: (string[] | undefined | null)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const src of sources) {
+    for (const raw of src ?? []) {
+      if (typeof raw !== "string" || !raw.trim()) continue;
+      const url = raw.startsWith("http://") ? raw.replace("http://", "https://") : raw;
+      if (!url.startsWith("https://") || seen.has(url)) continue;
+      seen.add(url);
+      out.push(url);
+    }
+  }
+  return out;
+}
+
+function dedupeAmenities(sources: (string[] | undefined | null)[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const src of sources) {
+    for (const raw of src ?? []) {
+      if (typeof raw !== "string" || !raw.trim()) continue;
+      const key = raw.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(raw.trim());
+    }
+  }
+  return out.sort();
+}
+
+function taToEnrichedReview(r: NormalizedTAReview): EnrichedReview {
+  return {
+    reviewer: r.reviewer,
+    rating: r.rating,
+    title: r.title,
+    text: r.text,
+    date: r.date,
+    source: "booking" as const,
+  };
+}
+
+function extraRatingWord(score: number): string {
+  if (score >= 9) return "Exceptional";
+  if (score >= 8) return "Excellent";
+  if (score >= 7) return "Very Good";
+  if (score >= 6) return "Good";
+  if (score >= 5) return "Pleasant";
+  return score > 0 ? "Satisfactory" : "";
+}
+
 // ─── EXPORT 1: enrichDBHotel ───────────────────────────────────────────────────
 
 export async function enrichDBHotel(dbHotel: any): Promise<EnrichedHotel> {
@@ -796,4 +935,264 @@ export async function getEnrichedHotelDetails(
 
   setInCache(rawId, enriched);
   return enriched;
+}
+
+/**
+ * enrichHotelData(baseHotel)
+ *
+ * Enriches any Booking API hotel with data from Google, Tripadvisor, Expedia.
+ *
+ * baseHotel is NEVER modified. All enrichment lives in result.extra.
+ *
+ * @param baseHotel  Any Booking hotel object (ExternalHotel | EnrichedHotel | raw)
+ * @returns          { ...baseHotel (untouched), extra: HotelExtra }
+ */
+export async function enrichHotelData(baseHotel: any): Promise<EnrichedWithExtra> {
+
+  const hotelName: string = String(baseHotel?.name ?? "");
+  const city:      string = String(baseHotel?.city ?? "");
+  const cacheKey:  string = `extra::${String(
+    baseHotel?._id ?? baseHotel?.bookingHotelId ?? baseHotel?.hotel_id ?? hotelName
+  )}`;
+
+  // ── Cache hit ────────────────────────────────────────────────────────────
+  const cached = getExtraFromCache(cacheKey);
+  if (cached) {
+    console.log(`[enrichHotelData] cache hit for "${hotelName}"`);
+    return { ...baseHotel, extra: cached };
+  }
+
+  console.log(`[enrichHotelData] enriching "${hotelName}" in "${city}"`);
+
+  const canFetch = !!(hotelName && city);
+
+  // ── Step 1: Fire all three enrichment sources in parallel ─────────────────
+  // Promise.allSettled: a single failure never blocks the others.
+  const [googleResult, tripadvisorResult, expediaResult] = await Promise.allSettled([
+
+    // Google: coordinates + nearby places
+    canFetch
+      ? getGoogleHotelDetails(hotelName, city)
+          .then(async (details) => {
+            if (!details) return null;
+            const lat = details.coordinates?.lat ?? 0;
+            const lng = details.coordinates?.lng ?? 0;
+            const nearby: NearbyPlace[] = (lat && lng)
+              ? await getNearbyPlaces(lat, lng).catch(() => [])
+              : [];
+            return { details, nearby };
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+
+    // Tripadvisor: reviews + rating
+    canFetch
+      ? getTripadvisorData(hotelName, city).catch(() => null)
+      : Promise.resolve(null),
+
+    // Expedia: images + amenities + rooms
+    canFetch
+      ? getExpediaData(hotelName, city).catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
+  // ── Step 2: Unwrap safely — null on any failure ──────────────────────────
+  const googleBundle = safeResult(googleResult) as
+    | { details: GooglePlaceDetails; nearby: NearbyPlace[] } | null;
+
+  const taRaw      = safeResult(tripadvisorResult) as TripadvisorHotelData | null;
+  const expediaRaw = safeResult(expediaResult)     as ExpediaHotelData     | null;
+
+  const googleDetails: GooglePlaceDetails | null = googleBundle?.details ?? null;
+  const nearbyPlaces:  NearbyPlace[]             = googleBundle?.nearby  ?? [];
+
+  // ── Step 3: Normalize each source ────────────────────────────────────────
+  const taNorm     = normalizeTripadvisor(taRaw);
+  const expNorm    = normalizeExpedia(expediaRaw);
+  const bookExt    = extractBookingDetails(baseHotel);
+  const googleExt  = extractGoogleDetails({
+    ...googleDetails,
+    nearbyPlaces: groupNearby(nearbyPlaces),
+  });
+
+  // ── Step 4: IMAGES — priority: Expedia > Booking > Google ────────────────
+  const rawImages = dedupeImages([
+    expNorm.images,                                           // Expedia: highest quality
+    Array.isArray(baseHotel?.imageUrls) ? baseHotel.imageUrls : [],  // Booking: already fetched
+    (googleDetails?.photos ?? []).map((p: any) => p.url),   // Google: places photos
+  ]);
+  // Pad to minimum 5 with static fallbacks
+  const images = padImages(rawImages);
+
+  // ── Step 5: AMENITIES — Expedia + Booking merged, deduped ────────────────
+  const amenities = dedupeAmenities([
+    expNorm.amenities,                                         // Expedia: most complete
+    Array.isArray(baseHotel?.amenities)  ? baseHotel.amenities  : [],
+    Array.isArray(baseHotel?.facilities) ? baseHotel.facilities : [],
+  ]);
+
+  // ── Step 6: REVIEWS — Tripadvisor > Booking > Google > generated ──────────
+  let reviews: EnrichedReview[];
+  if (taNorm.reviews.length > 0) {
+    reviews = taNorm.reviews.map(taToEnrichedReview);
+  } else if (Array.isArray(baseHotel?.reviews) && baseHotel.reviews.length > 0) {
+    reviews = (baseHotel.reviews as EnrichedReview[]).slice(0, 10);
+  } else if (googleDetails) {
+    reviews = normaliseGoogleReviews(googleDetails);
+  } else {
+    reviews = generateFallbackReviews(
+      hotelName || "This hotel",
+      Number(baseHotel?.averageRating ?? 4)
+    );
+  }
+
+  // ── Step 7: RATING — Tripadvisor > Google > Booking ──────────────────────
+  const taOverall       = taNorm.ratingSummary.overall;          // 0–10, 0 if missing
+  const googleRating10  = Number(googleDetails?.rating  ?? 0) * 2;
+  const bookingRating10 = Number(baseHotel?.averageRating ?? 0) * 2;
+
+  const finalRating10 = taOverall > 0
+    ? taOverall
+    : (googleRating10 || bookingRating10 || 0);
+
+  const finalRatingWord = taOverall > 0
+    ? taNorm.ratingSummary.ratingWord
+    : extraRatingWord(finalRating10);
+
+  const totalReviews = taNorm.ratingSummary.totalReviews > 0
+    ? taNorm.ratingSummary.totalReviews
+    : (Number(baseHotel?.reviewCount ?? 0) || googleDetails?.userRatingsTotal || 0);
+
+  // Category scores: Tripadvisor if available, else derived from overall
+  const ratingCategories: ExtraRating["categories"] = taOverall > 0
+    ? taNorm.ratingSummary.categories
+    : {
+        cleanliness:  Math.min(10, Math.round(finalRating10 * 1.03 * 10) / 10),
+        location:     Math.min(10, Math.round(finalRating10 * 1.01 * 10) / 10),
+        rooms:        Math.min(10, Math.round(finalRating10 * 0.98 * 10) / 10),
+        service:      Math.min(10, Math.round(finalRating10 * 1.02 * 10) / 10),
+        value:        Math.min(10, Math.round(finalRating10 * 0.93 * 10) / 10),
+        sleepQuality: Math.min(10, Math.round(finalRating10 * 0.99 * 10) / 10),
+      };
+
+  const rating: ExtraRating = {
+    overall:      finalRating10,
+    ratingWord:   finalRatingWord,
+    totalReviews,
+    categories:   ratingCategories,
+  };
+
+  // ── Step 8: LOCATION — Google authoritative ───────────────────────────────
+  const location = googleExt.location
+    ?? (baseHotel?.coordinates?.lat
+        ? {
+            lat:     Number(baseHotel.coordinates.lat),
+            lng:     Number(baseHotel.coordinates.lng),
+            address: String(baseHotel.address ?? ""),
+          }
+        : null);
+
+  // ── Step 9: NEARBY — Google only ─────────────────────────────────────────
+  const nearby: HotelExtra["nearby"] = {
+    restaurants: googleExt.nearby.restaurants,
+    attractions: googleExt.nearby.attractions,
+    transport:   googleExt.nearby.transport,
+    shopping:    googleExt.nearby.shopping,
+  };
+
+  // ── Step 10: ROOMS — Booking extractors first, Expedia as fallback ────────
+  // bookExt.rooms reads the real Booking.com `rooms` map when available.
+  // expNorm.rooms converts Expedia room data when Booking has none.
+  // PRICE IS NEVER MODIFIED — values come directly from API responses.
+  let finalRooms: RoomType[];
+  if (bookExt.rooms.length > 0) {
+  finalRooms = bookExt.rooms.map((r: any) => ({
+    type:               r.type || r.name || "Room",
+    maxGuests:          r.maxGuests ?? 2,
+    beds:               r.beds ?? "—",
+    size:               r.size ?? "—",        // ✅ FIX
+    price:              r.price,
+    originalPrice:      r.originalPrice ?? r.price,
+    discountPercent:    r.discountPercent ?? 0,
+    amenities:          r.amenities ?? [],
+    meals:              r.meals ?? [],
+    cancellationPolicy: r.cancellationPolicy ?? "Free cancellation",
+    available:          r.available ?? true,  // ✅ FIX
+  }));
+} else {
+    // Final fallback: synthesise from hotel-level price (zero price modification)
+    finalRooms = buildRooms(
+      Number(baseHotel?.pricePerNight ?? 0),
+      String(baseHotel?.currency      ?? "GBP"),
+      Number(baseHotel?.starRating    ?? 3),
+      Number(baseHotel?.adultCount    ?? 2),
+      Array.isArray(baseHotel?.facilities) ? baseHotel.facilities : [],
+      bookExt.policies.checkIn      || "From 15:00",
+      bookExt.policies.cancellation || "Free cancellation — verify with property."
+    );
+  }
+
+  // ── Step 11: PRICING — Booking extractors, EXACT values ──────────────────
+  // extractBookingDetails reads price directly from baseHotel fields.
+  // We never convert, multiply, or apply rates.
+  const finalPricing: PricingBreakdown = {
+    basePrice:   bookExt.pricing.basePrice,
+    taxRate:     bookExt.pricing.taxes > 0 && bookExt.pricing.basePrice > 0
+                   ? +(bookExt.pricing.taxes / bookExt.pricing.basePrice).toFixed(4)
+                   : 0,
+    taxes:       bookExt.pricing.taxes,
+    serviceFee:  bookExt.pricing.serviceFee,
+    discount:    0,
+    finalPrice:  bookExt.pricing.finalPrice,
+    currency:    bookExt.pricing.currency || String(baseHotel?.currency ?? "GBP"),
+    perNight:    bookExt.pricing.perNight,
+    nights:      1,
+  };
+
+  // ── Step 12: POLICIES — Booking extractors ────────────────────────────────
+  const policies = {
+    checkIn:      bookExt.policies.checkIn,
+    checkOut:     bookExt.policies.checkOut,
+    cancellation: bookExt.policies.cancellation,
+    children:     bookExt.policies.children,
+    pets:         bookExt.policies.pets,
+  };
+
+  // ── Step 13: REVIEWS SUMMARY ──────────────────────────────────────────────
+  const reviewsSummary = buildReviewsSummary(
+    finalRating10,
+    totalReviews,
+    finalRatingWord,
+    reviews
+  );
+
+  // ── Step 14: Assemble extra ───────────────────────────────────────────────
+  const extra: HotelExtra = {
+    images,
+    amenities,
+    reviews,
+    rating,
+    location,
+    nearby,
+    rooms:          finalRooms,
+    pricing:        finalPricing,
+    policies,
+    reviewsSummary,
+  };
+
+  setExtraInCache(cacheKey, extra);
+
+  console.log(
+    `[enrichHotelData] complete for "${hotelName}" — ` +
+    `images:${images.length} amenities:${amenities.length} ` +
+    `reviews:${reviews.length} rating:${finalRating10} ` +
+    `rooms:${finalRooms.length} ta:${taOverall > 0} ` +
+    `expedia:${expNorm.images.length > 0} google:${!!googleDetails}`
+  );
+
+  // ── Step 15: Return — baseHotel FIRST so its fields always win ───────────
+  return {
+    ...baseHotel,   // ← ALL original Booking fields, completely untouched
+    extra,          // ← new enrichment ONLY — never overwrites baseHotel keys
+  };
 }
