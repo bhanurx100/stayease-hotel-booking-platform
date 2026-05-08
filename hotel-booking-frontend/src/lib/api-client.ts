@@ -8,11 +8,8 @@ const getBaseURL = () => {
   }
 
   // Fallback URLs (production domains)
-  if (
-    window.location.hostname === "mern-booking-hotel.netlify.app" ||
-    window.location.hostname.includes("vercel.app")
-  ) {
-    return "https://hotel-booking-backend.duckdns.org";
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
   }
 
   if (window.location.hostname === "localhost") {
@@ -20,7 +17,7 @@ const getBaseURL = () => {
   }
 
   // Default to production (VPS backend)
-  return "https://hotel-booking-backend.duckdns.org";
+  return "https://stayease-hotel-booking-platform-1-49bo.onrender.com";
 };
 
 export const getApiBaseUrl = getBaseURL;
