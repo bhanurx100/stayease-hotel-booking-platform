@@ -78,10 +78,16 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Serve frontend in production
-const frontendPath = path.join(__dirname, "../../hotel-booking-frontend/dist");
-app.use(express.static(frontendPath));
-app.get("*", (_, res) => {
-  res.sendFile(path.join(frontendPath, "index.html"));
+// const frontendPath = path.join(__dirname, "../../hotel-booking-frontend/dist");
+// app.use(express.static(frontendPath));
+// app.get("*", (_, res) => {
+//   res.sendFile(path.join(frontendPath, "index.html"));
+// });
+app.get("/", (_, res) => {
+  res.json({
+    success: true,
+    message: "Stayease backend API is running",
+  });
 });
 
 // ─── MongoDB connection ────────────────────────────────────────────────────────

@@ -9,7 +9,7 @@
     "start": "node dist/hotel-booking-backend/src/index.js",
     "e2e": "cross-env DOTENV_CONFIG_PATH=.env.e2e nodemon"
   },
-  "author": "Arnob Mahmud",
+  "author": "Bhanuprasad",
   "license": "ISC",
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
