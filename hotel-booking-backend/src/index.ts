@@ -49,9 +49,10 @@ app.use(cookieParser());
 app.use(
   cors({
     origin: [
-      process.env.FRONTEND_URL ?? "http://localhost:5173",
+      process.env.FRONTEND_URL,
       "http://localhost:5173",
       "http://localhost:3000",
+      "https://stayease-hotel-booking-platform.vercel.app",
     ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
