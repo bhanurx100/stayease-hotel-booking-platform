@@ -1,1277 +1,729 @@
-# Hotel Booking Management System - React, Express.js FullStack MERN Project (including Business-Insights Dashboard)
+<div align="center">
 
-A comprehensive, production-ready hotel booking platform built with the MERN stack (MongoDB, Express.js, React, Node.js) featuring advanced search, booking management, analytics dashboard, and payment integration.
+# 🏨 StayEase — Hotel Booking Platform
 
-- **Frontend-Live-Demo:** [https://hotel-mern-booking.vercel.app/](https://hotel-mern-booking.vercel.app/)
-- **Backend-Live-Demo:** [https://hotel-booking-backend.arnobmahmud.com](https://hotel-booking-backend.arnobmahmud.com)
+### *A production-grade, full-stack hotel booking ecosystem with live worldwide inventory, AI-powered search, multi-source enrichment, and role-based analytics dashboards.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-![MernHolidays](https://img.shields.io/badge/MERN-Stack-blue?style=for-the-badge&logo=mongodb&logoColor=white)
-![React](https://img.shields.io/badge/React-18.2.0-blue?style=for-the-badge&logo=react)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.0.2-blue?style=for-the-badge&logo=typescript)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.3.5-38B2AC?style=for-the-badge&logo=tailwind-css)
+[![React](https://img.shields.io/badge/React-18.2-blue?logo=react)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?logo=typescript)](https://www.typescriptlang.org)
+[![Node.js](https://img.shields.io/badge/Node.js-20-green?logo=node.js)](https://nodejs.org)
+[![MongoDB](https://img.shields.io/badge/MongoDB-8.0-green?logo=mongodb)](https://www.mongodb.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.3-38B2AC?logo=tailwind-css)](https://tailwindcss.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-blue?logo=docker)](https://www.docker.com)
+[![Playwright](https://img.shields.io/badge/E2E-Playwright-orange?logo=playwright)](https://playwright.dev)
 
-![Screenshot 2025-09-04 at 12 02 23](https://github.com/user-attachments/assets/7b87581f-8a1a-4de4-99c3-ba5fab14f20d)
-![Screenshot 2025-09-04 at 12 03 00](https://github.com/user-attachments/assets/76e284bb-4324-4798-8e87-0079aab65a57)
-![Screenshot 2025-09-04 at 12 03 48](https://github.com/user-attachments/assets/c35d0786-f80d-493e-815c-7a594253183c)
-![Screenshot 2025-09-04 at 12 04 14](https://github.com/user-attachments/assets/d02e0687-8bd6-4924-8b07-9311c0308e11)
-![Screenshot 2025-09-04 at 12 04 37](https://github.com/user-attachments/assets/2adc94fe-7bd8-4622-9d7e-2342ef5a7bd5)
-![Screenshot 2025-09-04 at 12 05 31](https://github.com/user-attachments/assets/34fd12ca-9c3e-4242-960d-dfdfe5447299)
-![Screenshot 2025-09-04 at 12 05 59](https://github.com/user-attachments/assets/ff330293-fe8e-487f-a73a-1a1c4ade0fc1)
-![Screenshot 2025-09-04 at 12 06 36](https://github.com/user-attachments/assets/7b8c1b80-e395-4d46-b9f7-2b93211612eb)
-![Screenshot 2025-09-04 at 12 07 06](https://github.com/user-attachments/assets/1b15e2b6-5ad0-42a7-b121-c54d9ddf623a)
-![Screenshot 2025-09-04 at 12 07 24](https://github.com/user-attachments/assets/09e10d64-9c1d-4f0f-a167-a92d18caa85e)
-![Screenshot 2025-09-04 at 12 07 44](https://github.com/user-attachments/assets/9cb2e884-759e-4545-a963-11df51aa9785)
-![Screenshot 2025-09-04 at 12 08 32](https://github.com/user-attachments/assets/e89dd5df-c14f-4304-a012-9f3d35417182)
-![Screenshot 2025-09-04 at 12 09 52](https://github.com/user-attachments/assets/a4729503-28f4-489e-bc8f-d5a3e3bea93a)
-![Screenshot 2025-09-04 at 12 10 04](https://github.com/user-attachments/assets/68552511-83ac-42fa-8f54-99c926e3015d)
-![Screenshot 2025-09-04 at 12 10 20](https://github.com/user-attachments/assets/a5d236d7-3a07-493d-b966-afdafa83b383)
-![Screenshot 2025-09-04 at 12 10 33](https://github.com/user-attachments/assets/539c4d39-ca89-4383-9abd-1fa3dc184e50)
-![Screenshot 2025-09-04 at 12 10 51](https://github.com/user-attachments/assets/22ea115f-3383-4dcb-9540-448d4639383f)
-![Screenshot 2025-09-04 at 12 11 04](https://github.com/user-attachments/assets/20c8c57e-c224-4abe-b64d-1c0eb3fbcc91)
+**[🌐 Live Demo](https://stayease-hotel-booking-platform.vercel.app)** · **[📖 API Docs](https://stayease-hotel-booking-platform-1-49bo.onrender.com/api-docs)** · **[📊 API Status](https://stayease-hotel-booking-platform.vercel.app/api-status)**
+
+</div>
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+| Home — Hero & Search | Search Results |
+|---|---|
+| ![Home](assets/1.png) | ![Search](assets/2.png) |
+
+| Hotel Detail — Gallery & Rooms | Booking Flow |
+|---|---|
+| ![Detail](assets/3.png) | ![Booking](assets/4.png) |
+
+| AI Hotel Chatbot | Analytics Dashboard |
+|---|---|
+| ![AI Chatbot](assets/5.png) | ![Analytics](assets/6.png) |
+
+| Owner Dashboard | Admin & Business Insights |
+|---|---|
+| ![Owner Dashboard](assets/7.png) | ![Admin](assets/8.png) |
+
+</div>
+
+---
 
 ## 🎯 Project Overview
 
-### **What is this Project?**
+StayEase is a **full-stack hotel booking platform** built for scale, designed to go well beyond a basic CRUD application. It combines a live worldwide hotel inventory (via the Booking.com RapidAPI), on-platform property management, Google Places enrichment, and a multi-source data aggregation pipeline — delivering an experience comparable to industry booking platforms.
 
-The **Hotel Booking Management System** is a full-stack web application that revolutionizes the way hotels are discovered, booked, and managed. Built with modern web technologies, it provides a seamless experience for travelers seeking accommodations and hotel owners managing their properties.
+### What makes this different from a tutorial project:
 
-### **Core Purpose & Vision**
+| Capability | Implementation |
+|---|---|
+| **Live worldwide inventory** | Booking.com RapidAPI integration with INR/GBP currency detection |
+| **Multi-source enrichment** | Google Places + Tripadvisor + Expedia APIs merged per hotel |
+| **AI hotel chatbot** | Custom NLP intent parser with locale-aware pricing (₹/£) |
+| **Role-based dashboards** | Customer, Owner, and Admin portals with distinct UIs |
+| **Business analytics** | Revenue forecasting, trend analysis, system performance metrics |
+| **Currency-aware pricing** | DB hotels always ₹ (INR), external hotels use native API currency |
+| **E2E test suite** | Playwright tests covering auth, hotel management, booking flows |
+| **Docker-ready backend** | Multi-stage Dockerfile with health checks |
+| **Swagger API docs** | Auto-generated interactive API documentation |
 
-This project serves as a **comprehensive hotel booking ecosystem** that bridges the gap between travelers and hotel owners. It's designed to be:
+---
 
-- **User-Centric**: Intuitive interface for travelers to find and book hotels
-- **Owner-Friendly**: Powerful tools for hotel owners to manage their properties
-- **Data-Driven**: Advanced analytics for business insights and decision-making
-- **Scalable**: Built to handle growth from small boutique hotels to large chains
+## ✨ Feature Highlights
 
-### **Key Problems Solved**
+### 🔍 Search & Discovery
+- Full-text hotel search with destination, check-in/out, adult/child count
+- Real-time filter sidebar: star rating, hotel type, facilities, max price
+- Live worldwide hotel results merged with on-platform DB hotels
+- Sort by: recommended, top rated, price ascending/descending
+- Popular city quick-links with default date pre-fill
+- Autocomplete dropdown from DB hotel cities
 
-#### 🏨 **For Travelers:**
+### 🤖 AI Hotel Assistant
+- Floating chatbot with session ring-buffer (last 5 messages)
+- Custom intent extractor: destination, price, star rating, hotel type, guest count
+- Locale-aware pricing — Indian cities auto-switch to ₹ thresholds
+- Parallel DB + external hotel search with unified results
+- "View all results" deep-links to search page, hotel cards link to detail page
+- Load-more pagination within chat, external hotel cache for Detail page
 
-- **Discovery**: Advanced search with multiple filters (price, location, amenities, ratings)
-- **Booking**: Seamless booking process with secure payment integration
-- **Management**: Easy access to booking history and travel plans
-- **Trust**: Transparent pricing, reviews, and hotel information
+### 🏨 Hotel Detail Page (Booking.com-grade)
+- Hero image grid (1 large + 4 thumbnails) → fullscreen gallery modal with keyboard nav
+- Sticky tab bar: Overview | About | Rooms | Accessibility | Policies
+- Room selection cards with pricing breakdown (GST for DB, native currency for external)
+- Grouped amenities (WiFi & Tech / Pool & Wellness / Dining / Services / Safety)
+- Google-authenticated guest reviews with category scores & distribution bars
+- Lazy-loaded map (Google Static Maps or OpenStreetMap fallback)
+- Nearby places: restaurants, attractions, transport, shopping — with Google Maps links
+- Full policies + contact section
 
-#### 🏢 **For Hotel Owners:**
+### 💳 Booking & Payments
+- Stripe PaymentIntent-based booking flow
+- GuestInfoForm with live date picker, adult/child count, total price calculation
+- Booking confirmation with status tracking (pending → confirmed → completed)
+- Test credentials helper with one-click copy
 
-- **Property Management**: Complete CRUD operations for hotel listings
-- **Booking Management**: Real-time booking tracking and guest information
-- **Analytics**: Comprehensive business insights and performance metrics
-- **Revenue Optimization**: Pricing strategies and occupancy analysis
+### 👥 Role-based Dashboards
+- **Customer Dashboard**: booking history table, upcoming stays, recommended hotels
+- **Owner Dashboard**: property management, per-hotel revenue/booking stats, booking log modal
+- **Admin Dashboard**: platform-wide stats, all hotels table, analytics deep-link
 
-#### 🔧 **For Developers:**
+### 📊 Business Analytics (3 tabs)
+- **Overview**: revenue charts, daily bookings bar chart, popular destinations pie chart, top hotels table
+- **Forecasting**: 4-week linear regression forecast for bookings and revenue
+- **Performance**: system memory/CPU, database metrics, application KPIs
 
-- **Learning Resource**: Complete MERN stack implementation
-- **Best Practices**: Modern development patterns and architecture
-- **Production Ready**: Deployment strategies and optimization techniques
-- **Extensible**: Modular design for easy feature additions
+### 🔐 Authentication
+- JWT dual-auth: httpOnly cookie + `Authorization: Bearer` header
+- Google OAuth (optional, enabled via `VITE_GOOGLE_CLIENT_ID`)
+- bcrypt password hashing (12 rounds on register)
+- Token stored in localStorage as fallback for privacy browsers
 
-### **Target Audience**
+### 🌍 Currency System
+- `formatINR()` — DB hotels, always ₹, never converts
+- `formatExternal()` — external hotels, uses API-native currency code
+- User-selectable display currency (GBP / USD / INR) with cross-rate conversion
+- Currency selector in header (desktop) and mobile nav
 
-#### **Primary Users:**
+### 🗺️ Map Integration
+- Google Maps Static API (single `<img>` tag, no JS SDK required)
+- OpenStreetMap iframe fallback when no Google key is set
+- Nearby places from Google Places Nearby Search API (restaurant / attraction / transport / shopping)
 
-- **Travelers**: Individuals and families looking for hotel accommodations
-- **Hotel Owners**: Small to medium hotel proprietors and managers
-- **Travel Agencies**: Organizations managing multiple bookings
+### 🧪 E2E Testing
+- Playwright test suite covering sign-in, registration, add hotel, edit hotel, search, detail, and full booking flow
 
-#### **Secondary Users:**
+---
 
-- **Developers**: Learning full-stack development with MERN stack
-- **Students**: Understanding modern web application architecture
-- **Entrepreneurs**: Building similar booking platforms
+## 🏗️ Architecture Overview
 
-### **Business Model & Value Proposition**
-
-#### **Revenue Streams:**
-
-- **Commission-based**: Percentage fee on successful bookings
-- **Subscription**: Premium features for hotel owners
-- **Advertising**: Featured hotel listings and promotions
-- **Analytics**: Premium business insights and reporting
-
-#### **Competitive Advantages:**
-
-- **Advanced Search**: Multi-criteria filtering and smart recommendations
-- **Real-time Analytics**: Live business insights and performance tracking
-- **Mobile-First**: Responsive design optimized for all devices
-- **Security**: Enterprise-grade authentication and data protection
-
-### **Technical Architecture**
-
-#### **Frontend Architecture:**
-
-```bash
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   React App     │    │  React Query    │    │  Tailwind CSS   │
-│   (TypeScript)  │◄──►│  (State Mgmt)   │◄──►│   (Styling)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│  React Router   │    │   Shadcn UI     │    │   Vite Build    │
-│  (Navigation)   │    │  (Components)   │    │   (Dev Server)  │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                          CLIENT (Browser)                           │
+│                                                                     │
+│  React 18 + TypeScript + Vite + Tailwind CSS                       │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐             │
+│  │  Pages   │ │Components│ │ Contexts │ │ Forms    │             │
+│  │ (Routes) │ │  + UI    │ │ App/     │ │ Booking/ │             │
+│  │          │ │  Lib     │ │ Search/  │ │ Hotel/   │             │
+│  │          │ │          │ │ Currency │ │ Guest    │             │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘             │
+│       └────────────┴────────────┴────────────┘                    │
+│                    API Client (Axios + React Query)                 │
+└─────────────────────────────┬───────────────────────────────────────┘
+                              │ HTTPS / REST
+┌─────────────────────────────▼───────────────────────────────────────┐
+│                    BACKEND (Express + TypeScript)                    │
+│                                                                     │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐             │
+│  │  /auth   │ │ /hotels  │ │/my-hotels│ │/bookings │             │
+│  │  /users  │ │ /search  │ │/my-      │ │/my-      │             │
+│  │          │ │ /details │ │bookings  │ │bookings  │             │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘             │
+│       │             │            │              │                   │
+│  ┌────▼─────────────▼────────────▼──────────────▼──────┐          │
+│  │              Service Layer                            │          │
+│  │  aggregatorService │ externalHotelService            │          │
+│  │  googlePlacesService │ tripadvisorService             │          │
+│  │  expediaService │ bookingExtractors                   │          │
+│  └───────────────────────┬──────────────────────────────┘          │
+│                          │                                          │
+│  ┌───────────────────────▼──────────────────────────────┐          │
+│  │              Database Layer (MongoDB / Mongoose)      │          │
+│  │  User │ Hotel │ Booking │ Review │ Analytics          │          │
+│  └──────────────────────────────────────────────────────┘          │
+└─────────────────────────────────────────────────────────────────────┘
+                              │
+         ┌────────────────────┼─────────────────────┐
+         │                    │                     │
+    ┌────▼────┐         ┌─────▼────┐         ┌─────▼────┐
+    │ Booking │         │  Google  │         │Tripadvisor│
+    │.com API │         │  Places  │         │  + Expedia│
+    │(RapidAPI│         │   API    │         │  (RapidAPI│
+    └─────────┘         └──────────┘         └──────────┘
 ```
 
-#### **Backend Architecture:**
+### Data Flow: External Hotel Enrichment
 
-```bash
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Express.js    │    │   MongoDB      │    │   JWT Auth      │
-│   (API Server)  │◄──►│   (Database)   │◄──►│   (Security)    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Multer        │    │   Cloudinary    │    │   Stripe        │
-│  (File Upload)  │    │  (Image Mgmt)   │    │  (Payments)     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
-
-### **Feature Highlights**
-
-#### 🌟 **Innovative Features:**
-
-- **Smart Search Algorithm**: AI-powered hotel recommendations
-- **Real-time Availability**: Live booking status and instant confirmation
-- **Advanced Analytics**: Predictive insights and business forecasting
-- **Multi-language Support**: Internationalization ready
-- **Progressive Web App**: Offline capabilities and app-like experience
-
-#### 🔒 **Security Features:**
-
-- **Dual Authentication**: Cookie-based + Authorization header support
-- **Privacy Compliance**: GDPR-ready data handling
-- **Rate Limiting**: Protection against abuse and DDoS
-- **Input Validation**: Comprehensive data sanitization
-- **Secure Payments**: PCI-compliant payment processing
-
-#### 📱 **User Experience:**
-
-- **Responsive Design**: Optimized for all screen sizes
-- **Progressive Enhancement**: Works without JavaScript
-- **Accessibility**: WCAG 2.1 AA compliance
-- **Performance**: Sub-2-second page load times
-- **Offline Support**: Cached data for offline browsing
-
-### **Development Philosophy**
-
-#### **Code Quality:**
-
-- **TypeScript First**: Type-safe development throughout
-- **Component-Driven**: Reusable, modular components
-- **Test-Driven**: Comprehensive testing strategy
-- **Documentation**: Self-documenting code with detailed comments
-
-#### **Performance:**
-
-- **Lazy Loading**: Code splitting and dynamic imports
-- **Caching Strategy**: Intelligent data caching
-- **Optimization**: Bundle size and runtime optimization
-- **Monitoring**: Real-time performance tracking
-
-#### **Scalability:**
-
-- **Microservices Ready**: Modular architecture for scaling
-- **Database Optimization**: Efficient queries and indexing
-- **CDN Integration**: Global content delivery
-- **Load Balancing**: Horizontal scaling capabilities
-
-### **Future Roadmap**
-
-#### **Phase 1 (Current):**
-
-- ✅ Core booking functionality
-- ✅ Hotel management system
-- ✅ Basic analytics dashboard
-- ✅ Payment integration
-
-#### **Phase 2 (Planned):**
-
-- 🔄 Advanced search with AI recommendations
-- 🔄 Real-time chat support
-- 🔄 Mobile app development
-- 🔄 Multi-language support
-
-#### **Phase 3 (Future):**
-
-- 📅 Blockchain-based booking verification
-- 📅 VR hotel tours
-- 📅 AI-powered pricing optimization
-- 📅 Integration with travel APIs
-
-### **Success Metrics**
-
-#### **User Engagement:**
-
-- **Booking Conversion Rate**: Target 15%+ from search to booking
-- **User Retention**: 60%+ return rate within 6 months
-- **Session Duration**: Average 8+ minutes per session
-- **Mobile Usage**: 70%+ of bookings via mobile devices
-
-#### **Business Performance:**
-
-- **Revenue Growth**: 25%+ month-over-month growth
-- **Hotel Partner Growth**: 100+ hotels onboarded in first year
-- **Customer Satisfaction**: 4.5+ star rating
-- **Technical Performance**: 99.9% uptime
-
-### **Impact & Benefits**
-
-#### **For the Travel Industry:**
-
-- **Digital Transformation**: Modernizing traditional booking processes
-- **Data Insights**: Valuable market intelligence and trends
-- **Efficiency**: Streamlined operations and reduced overhead
-- **Customer Experience**: Enhanced satisfaction and loyalty
-
-#### **For Developers:**
-
-- **Learning Platform**: Comprehensive full-stack development example
-- **Best Practices**: Modern development patterns and techniques
-- **Portfolio Project**: Demonstrates advanced technical skills
-- **Open Source**: Contributing to the developer community
-
----
-
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Installation & Setup](#-installation--setup)
-- [Environment Variables](#-environment-variables)
-- [API Documentation](#-api-documentation)
-- [Key Components](#-key-components)
-- [Database Schema](#-database-schema)
-- [Authentication & Authorization](#-authentication--authorization)
-- [Payment Integration](#-payment-integration)
-- [Search & Filtering](#-search--filtering)
-- [Analytics Dashboard](#-analytics-dashboard)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [Contributing](#-contributing)
-- [License](#-license)
-
----
-
-## ✨ Features
-
-### 🏨 Hotel Management
-
-- **Multi-role System**: User, Hotel Owner, and Admin roles
-- **Hotel CRUD Operations**: Create, read, update, delete hotel listings
-- **Image Upload**: Cloudinary integration for hotel image management
-- **Advanced Hotel Details**: Location, amenities, policies, contact information
-- **Hotel Analytics**: Booking statistics, revenue tracking, occupancy rates
-
-### 🔍 Advanced Search & Filtering
-
-- **Smart Search**: Destination-based hotel discovery
-- **Multi-filter System**: Price range, star rating, hotel types, facilities
-- **Geolocation Support**: Location-based search with coordinates
-- **Sorting Options**: Price, rating, distance, relevance
-- **Pagination**: Efficient data loading for large datasets
-
-### 📅 Booking System
-
-- **Real-time Availability**: Check-in/check-out date validation
-- **Guest Management**: Adult and child count tracking
-- **Payment Integration**: Stripe payment processing
-- **Booking Status**: Pending, confirmed, cancelled, completed, refunded
-- **Booking History**: Complete booking logs and analytics
-
-### 📊 Analytics Dashboard
-
-- **Real-time Metrics**: Revenue, bookings, occupancy rates
-- **Performance Charts**: Revenue trends, booking patterns
-- **Forecasting**: Predictive analytics for business insights
-- **Hotel Performance**: Individual hotel analytics
-- **User Analytics**: User behavior and preferences
-
-### 🔐 Authentication & Security
-
-- **JWT Authentication**: Secure token-based authentication
-- **Role-based Access Control**: Granular permissions
-- **Password Security**: bcrypt password hashing
-- **Rate Limiting**: API request throttling
-- **CORS Protection**: Cross-origin resource sharing security
-
-### 🎨 Modern UI/UX
-
-- **Responsive Design**: Mobile-first approach
-- **Shadcn UI Components**: Modern, accessible UI components
-- **Tailwind CSS**: Utility-first CSS framework
-- **Dark/Light Mode**: Theme customization
-- **Loading States**: Smooth user experience
-- **Toast Notifications**: User feedback system
-
----
-
-## 🛠 Tech Stack
-
-### Frontend
-
-- **React 18.2.0** - Modern UI library with hooks
-- **TypeScript 5.0.2** - Type-safe JavaScript
-- **Vite** - Fast build tool and dev server
-- **React Router DOM** - Client-side routing
-- **React Query** - Server state management
-- **Tailwind CSS** - Utility-first CSS framework
-- **Shadcn UI** - Modern component library
-- **Lucide React** - Beautiful icons
-- **React Hook Form** - Form validation and handling
-- **Stripe React** - Payment processing
-
-### Backend
-
-- **Node.js** - JavaScript runtime
-- **Express.js** - Web application framework
-- **TypeScript** - Type-safe development
-- **MongoDB** - NoSQL database
-- **Mongoose** - MongoDB object modeling
-- **JWT** - JSON Web Token authentication
-- **bcryptjs** - Password hashing
-- **Multer** - File upload handling
-- **Cloudinary** - Cloud image storage
-- **Stripe** - Payment processing
-- **Swagger** - API documentation
-- **Helmet** - Security middleware
-- **Morgan** - HTTP request logger
-- **CORS** - Cross-origin resource sharing
-
-### Development Tools
-
-- **Nodemon** - Development server with auto-restart
-- **ESLint** - Code linting
-- **Playwright** - End-to-end testing
-- **Git** - Version control
+GET /api/hotels/details/:id
+        │
+        ▼
+   Is external? (booking_*)
+        │                   │
+       YES                  NO
+        │                   │
+   getRapidDetails()   Hotel.findById()
+        │                   │
+        └────────┬──────────┘
+                 │
+         getEnrichedHotelDetails()
+                 │
+    ┌────────────┼─────────────┐
+    │            │             │
+getGoogleDetails()  getTripAdvisor()  getExpediaData()
+    │            │             │
+    └────────────┴─────────────┘
+                 │
+         Merge + Deduplicate
+         (images/amenities/reviews)
+                 │
+         10-min in-memory cache
+                 │
+         EnrichedHotel response
+```
 
 ---
 
 ## 📁 Project Structure
 
-```bash
-hotel-booking/
-├── hotel-booking-frontend/          # React frontend application
+```
+stayease-hotel-booking-platform/
+│
+├── assets/                          # Screenshots for README
+│   ├── 1.png … 8.png
+│
+├── shared/                          # Shared TypeScript types
+│   ├── types.ts                     # UserType, HotelType, BookingType, etc.
+│   └── types.js                     # Compiled JS
+│
+├── hotel-booking-frontend/          # React + Vite frontend
+│   ├── public/
 │   ├── src/
-│   │   ├── components/             # Reusable UI components
-│   │   │   ├── ui/                 # Shadcn UI components
-│   │   │   ├── AdvancedSearch.tsx  # Advanced search component
-│   │   │   ├── Hero.tsx           # Landing page hero section
-│   │   │   ├── Header.tsx         # Navigation header
-│   │   │   └── ...
-│   │   ├── pages/                 # Page components
-│   │   │   ├── Home.tsx           # Landing page
-│   │   │   ├── Search.tsx        # Hotel search page
-│   │   │   ├── Detail.tsx        # Hotel details page
-│   │   │   ├── Booking.tsx       # Booking page
-│   │   │   ├── MyHotels.tsx      # Hotel management
-│   │   │   ├── MyBookings.tsx    # Booking management
-│   │   │   ├── AnalyticsDashboard.tsx # Analytics
-│   │   │   └── ...
-│   │   ├── forms/                # Form components
-│   │   ├── hooks/               # Custom React hooks
-│   │   ├── contexts/            # React contexts
-│   │   ├── layouts/             # Layout components
-│   │   └── api-client.ts        # API client functions
-│   ├── package.json
-│   └── vite.config.ts
-├── hotel-booking-backend/         # Node.js backend application
+│   │   ├── api-client.ts            # All API call functions
+│   │   ├── App.tsx                  # Routes + layout wrappers
+│   │   ├── main.tsx                 # App entry, Google OAuth provider
+│   │   ├── index.css                # Tailwind base
+│   │   │
+│   │   ├── components/
+│   │   │   ├── ui/                  # shadcn/ui primitives
+│   │   │   ├── dashboard/           # StatsCard, SectionCard, DashboardTable
+│   │   │   ├── AIChatbot.tsx        # Floating AI assistant
+│   │   │   ├── HotelHeader.tsx      # Image grid + sticky tabs + highlights
+│   │   │   ├── Map.tsx              # Google Static / OSM map
+│   │   │   ├── SearchResultsCard.tsx
+│   │   │   ├── LatestDestinationCard.tsx
+│   │   │   ├── PopularCities.tsx
+│   │   │   ├── SearchBar.tsx
+│   │   │   ├── BookingLogModal.tsx
+│   │   │   ├── CurrencySelector.tsx
+│   │   │   └── …
+│   │   │
+│   │   ├── contexts/
+│   │   │   ├── AppContext.tsx        # isLoggedIn, toast, global loading
+│   │   │   ├── SearchContext.tsx     # destination, dates, guest count
+│   │   │   └── CurrencyContext.tsx  # formatINR / formatExternal / format
+│   │   │
+│   │   ├── forms/
+│   │   │   ├── BookingForm/         # Stripe card + booking submit
+│   │   │   ├── GuestInfoForm/       # Date picker + guest counts
+│   │   │   └── ManageHotelForm/     # Multi-section hotel form
+│   │   │
+│   │   ├── hooks/
+│   │   │   ├── useAppContext.ts
+│   │   │   ├── useSearchContext.ts
+│   │   │   ├── useLoadingHooks.ts   # useQueryWithLoading, useMutationWithLoading
+│   │   │   └── use-toast.ts
+│   │   │
+│   │   ├── layouts/
+│   │   │   ├── Layout.tsx           # Header + Footer + AIChatbot
+│   │   │   ├── AuthLayout.tsx       # Minimal header/footer
+│   │   │   └── DashboardLayout.tsx  # Sidebar + topbar for dashboards
+│   │   │
+│   │   ├── lib/
+│   │   │   ├── api-client.ts        # Axios instance + interceptors
+│   │   │   ├── nav-utils.ts
+│   │   │   └── utils.ts             # cn() helper
+│   │   │
+│   │   └── pages/
+│   │       ├── Home.tsx
+│   │       ├── Search.tsx
+│   │       ├── Detail.tsx
+│   │       ├── Booking.tsx
+│   │       ├── MyBookings.tsx
+│   │       ├── MyHotels.tsx
+│   │       ├── AddHotel.tsx
+│   │       ├── EditHotel.tsx
+│   │       ├── Register.tsx
+│   │       ├── SignIn.tsx
+│   │       ├── AuthCallback.tsx
+│   │       ├── Customerdashboard.tsx
+│   │       ├── Ownerdashboard.tsx
+│   │       ├── Admindashboard.tsx
+│   │       ├── AnalyticsDashboard.tsx
+│   │       ├── ApiDocs.tsx
+│   │       └── ApiStatus.tsx
+│   │
+│   ├── tailwind.config.js
+│   ├── vite.config.ts
+│   └── vercel.json
+│
+├── hotel-booking-backend/           # Express + TypeScript backend
 │   ├── src/
-│   │   ├── routes/              # API route handlers
-│   │   │   ├── auth.ts          # Authentication routes
-│   │   │   ├── hotels.ts        # Hotel management routes
-│   │   │   ├── bookings.ts      # Booking routes
-│   │   │   ├── analytics.ts     # Analytics routes
-│   │   │   └── ...
-│   │   ├── models/              # MongoDB models
-│   │   ├── middleware/         # Express middleware
-│   │   ├── index.ts            # Server entry point
-│   │   └── swagger.ts          # API documentation
+│   │   ├── index.ts                 # Express app, MongoDB connect w/ retry
+│   │   ├── swagger.ts               # Swagger/OpenAPI config
+│   │   │
+│   │   ├── middleware/
+│   │   │   └── auth.ts              # verifyToken (cookie + Bearer)
+│   │   │
+│   │   ├── models/
+│   │   │   ├── user.ts
+│   │   │   ├── hotel.ts
+│   │   │   ├── booking.ts
+│   │   │   ├── review.ts
+│   │   │   └── analytics.ts
+│   │   │
+│   │   ├── routes/
+│   │   │   ├── auth.ts              # register, login, google-login, logout, validate-token
+│   │   │   ├── hotels.ts            # search, list, details/:id, external/:id, booking
+│   │   │   ├── my-hotels.ts         # CRUD for owner's hotels + image upload
+│   │   │   ├── bookings.ts          # Admin booking management
+│   │   │   ├── my-bookings.ts       # User's own bookings
+│   │   │   ├── users.ts             # /me, register
+│   │   │   ├── ai.ts                # POST /chat, GET /history/:sessionId
+│   │   │   ├── business-insights.ts # dashboard, forecast, system-stats
+│   │   │   └── health.ts            # /, /detailed
+│   │   │
+│   │   ├── services/
+│   │   │   ├── aggregatorService.ts       # EnrichedHotel builder, 10-min cache
+│   │   │   ├── externalHotelService.ts    # Booking.com RapidAPI, currency fix
+│   │   │   ├── googlePlacesService.ts     # findPlaceId, getPlaceDetails, getNearbyPlaces
+│   │   │   ├── tripadvisorService.ts      # Reviews + rating aggregation
+│   │   │   ├── expediaService.ts          # Images + amenities + rooms
+│   │   │   └── bookingExtractors.ts       # extractBookingDetails, extractGoogleDetails
+│   │   │
+│   │   └── scripts/
+│   │       ├── seedDemoUsers.ts     # Seeds user/owner/admin accounts
+│   │       └── seedIndianHotels.ts  # Seeds 25 Indian hotels (Bangalore/Hyderabad/Goa/Delhi/etc.)
+│   │
+│   ├── .env.example
+│   ├── Dockerfile                   # Multi-stage build
 │   └── package.json
-├── shared/                       # Shared TypeScript types
-│   └── types.ts
-├── e2e-tests/                   # End-to-end tests
-└── data/                        # Sample data and images
+│
+├── e2e-tests/                       # Playwright E2E test suite
+│   ├── tests/
+│   │   ├── auth.spec.ts
+│   │   ├── manage-hotels.spec.ts
+│   │   └── search-hotels.spec.ts
+│   └── playwright.config.ts
+│
+├── data/
+│   ├── test-hotel.json
+│   ├── test-users.json
+│   └── hotel_images/
+│
+└── shared/
+    └── types.ts
 ```
 
 ---
 
-## 🚀 Installation & Setup
+## 🛠️ Tech Stack
+
+### Frontend
+| Technology | Version | Purpose |
+|---|---|---|
+| React | 18.2 | UI library |
+| TypeScript | 5.0 | Type safety |
+| Vite | 7.x | Build tool & dev server |
+| Tailwind CSS | 3.3 | Utility-first styling |
+| React Router DOM | 6.x | Client-side routing |
+| React Query | 3.x | Server state + caching |
+| React Hook Form | 7.x | Form handling & validation |
+| @stripe/react-stripe-js | 3.x | Payment UI |
+| @react-oauth/google | 0.13 | Google OAuth |
+| Lucide React | 0.54 | Icon library |
+| Recharts | 3.x | Analytics charts |
+| shadcn/ui | — | Component primitives |
+| Axios | 1.x | HTTP client |
+| js-cookie | 3.x | Cookie utilities |
+| react-datepicker | 4.x | Date selection |
+
+### Backend
+| Technology | Version | Purpose |
+|---|---|---|
+| Node.js | 20 | Runtime |
+| Express.js | 4.18 | Web framework |
+| TypeScript | 5.x | Type safety |
+| MongoDB | 6+ | Database |
+| Mongoose | 8.x | ODM |
+| jsonwebtoken | 9.x | JWT auth |
+| bcryptjs | 2.x | Password hashing |
+| Multer | 1.4 | File upload |
+| Cloudinary | 1.x | Image storage |
+| Stripe | 14.x | Payment processing |
+| Axios | 1.x | External API calls |
+| express-validator | 7.x | Input validation |
+| swagger-jsdoc | 6.x | API documentation |
+| Helmet | 8.x | Security headers |
+| Morgan | 1.x | HTTP logging |
+| cookie-parser | 1.x | Cookie parsing |
+
+### External Integrations
+| Service | Purpose |
+|---|---|
+| Booking.com RapidAPI | Live worldwide hotel inventory + pricing |
+| Google Places API | Coordinates, photos, reviews, nearby places |
+| Tripadvisor RapidAPI | Authentic reviews + subratings |
+| Expedia RapidAPI | High-res images + full amenity lists + rooms |
+| Stripe | Secure payment processing |
+| Cloudinary | Hotel image upload + transformation |
+
+---
+
+## 🔐 Authentication Flow
+
+```
+┌─────────┐     POST /api/auth/login      ┌─────────────────┐
+│ Browser │ ──────────────────────────── ▶ │   Express Auth  │
+│         │                               │   Route         │
+│         │ ◀ ─────────────────────────── │                 │
+│         │   Set-Cookie: auth_token      │  bcrypt.compare │
+│         │   + JSON { token, userId }    │  jwt.sign()     │
+└────┬────┘                               └─────────────────┘
+     │
+     │  Subsequent requests
+     │
+     ├── Cookie browser: auth_token in cookie (auto-sent)
+     │
+     └── Privacy/mobile: Authorization: Bearer <token>
+                                    │
+                          ┌─────────▼───────────┐
+                          │  verifyToken        │
+                          │  middleware         │
+                          │  reads EITHER       │
+                          │  cookie OR header   │
+                          │  → sets req.userId  │
+                          └─────────────────────┘
+```
+
+**Google OAuth Flow:**
+1. User clicks "Sign in with Google" → `GoogleLogin` component fires
+2. Credential sent to `POST /api/auth/google-login`
+3. Backend verifies with `google-auth-library`, finds or creates user
+4. Returns same JWT response as email login
+5. `AuthCallback.tsx` handles redirect-based OAuth if configured
+
+---
+
+## 💾 Database Design Overview
+
+### Collections & Indexes
+
+```
+Users
+  ├── email (unique, indexed)
+  ├── role: "user" | "admin" | "hotel_owner"
+  ├── totalBookings, totalSpent (denormalized counters)
+  └── preferences: { preferredDestinations, budgetRange }
+
+Hotels
+  ├── userId (indexed — links to owner)
+  ├── city, country (indexed)
+  ├── pricePerNight (indexed)
+  ├── starRating (indexed)
+  ├── compound indexes: (city, starRating), (price, starRating)
+  ├── location: { latitude, longitude, address }
+  ├── contact, policies, amenities (optional enrichment)
+  └── totalBookings, totalRevenue (denormalized analytics)
+
+Bookings
+  ├── userId (indexed)
+  ├── hotelId (indexed)
+  ├── status: pending | confirmed | cancelled | completed | refunded
+  ├── paymentStatus: pending | paid | failed | refunded
+  ├── compound indexes: (userId, createdAt), (hotelId, checkIn)
+  └── specialRequests, cancellationReason, refundAmount
+
+Reviews
+  ├── userId, hotelId, bookingId (all indexed)
+  ├── rating (1-5), categories: { cleanliness, service, location, value, amenities }
+  └── isVerified, helpfulCount
+
+Analytics
+  ├── date (indexed)
+  ├── metrics: { totalBookings, totalRevenue, conversionRate, cancellationRate }
+  └── breakdown: { byStatus, byPaymentStatus, byDestination, byHotelType }
+```
+
+---
+
+## 🚀 Local Development Setup
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
+- Node.js ≥ 18
 - MongoDB (local or Atlas)
 - Git
 
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/hotel-booking.git
-cd hotel-booking
+git clone https://github.com/bhanurx100/stayease-hotel-booking-platform.git
+cd stayease-hotel-booking-platform
 ```
 
-### Step 2: Install Dependencies
-
-#### Backend Setup
+### 2. Backend Setup
 
 ```bash
 cd hotel-booking-backend
 npm install
+cp .env.example .env
+# Edit .env with your values (see Environment Variables below)
+npm run dev
+# Backend starts at http://localhost:5000
 ```
 
-#### Frontend Setup
+### 3. Frontend Setup
 
 ```bash
 cd hotel-booking-frontend
 npm install
+# Create .env file:
+echo "VITE_API_BASE_URL=http://localhost:5000" > .env
+echo "VITE_STRIPE_PUB_KEY=pk_test_..." >> .env
+npm run dev
+# Frontend starts at http://localhost:5174
 ```
 
-### Step 3: Environment Configuration
-
-Create environment files for both frontend and backend (see [Environment Variables](#-environment-variables) section).
-
-### Step 4: Start Development Servers
-
-#### Backend Server
+### 4. Seed the Database (optional but recommended)
 
 ```bash
 cd hotel-booking-backend
-npm run dev
-# Server runs on http://localhost:7002
+
+# Seed demo users (user@test.com / owner@test.com / admin@test.com — password: 123456)
+npx ts-node src/scripts/seedDemoUsers.ts
+
+# Seed 25 Indian hotels across Bangalore, Hyderabad, Goa, Delhi, Chennai, Coorg, Ooty
+npx ts-node src/scripts/seedIndianHotels.ts
 ```
-
-#### Frontend Server
-
-```bash
-cd hotel-booking-frontend
-npm run dev
-# Frontend runs on http://localhost:5174
-```
-
-### Step 5: Access the Application
-
-- **Frontend**: <http://localhost:5174>
-- **Backend API**: <http://localhost:7002>
-- **API Documentation**: <http://localhost:7002/api-docs>
 
 ---
 
 ## 🔧 Environment Variables
 
-### Backend (.env)
-
-Create a `.env` file in the `hotel-booking-backend` directory:
+### Backend — `.env`
 
 ```env
-# Server Configuration
-PORT=7002
+# ── Server ────────────────────────────────────────
+PORT=5000
 NODE_ENV=development
 
-# MongoDB Connection
-MONGODB_CONNECTION_STRING=mongodb://localhost:27017/hotel-booking
-# OR for MongoDB Atlas:
-# MONGODB_CONNECTION_STRING=mongodb+srv://username:password@cluster.mongodb.net/hotel-booking
+# ── Database ─────────────────────────────────────
+MONGODB_CONNECTION_STRING=mongodb+srv://user:pass@cluster.mongodb.net/stayease
 
-# JWT Configuration
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=7d
+# ── Auth ─────────────────────────────────────────
+JWT_SECRET_KEY=your-very-long-random-secret-here
 
-# Cloudinary Configuration (for image uploads)
-CLOUDINARY_CLOUD_NAME=your-cloud-name
-CLOUDINARY_API_KEY=your-api-key
-CLOUDINARY_API_SECRET=your-api-secret
-
-# Stripe Configuration (for payments)
-STRIPE_SECRET_KEY=sk_test_your-stripe-secret-key
-STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key
-
-# Frontend URL (for CORS)
+# ── Frontend ─────────────────────────────────────
 FRONTEND_URL=http://localhost:5174
+BACKEND_URL=http://localhost:5000  # optional, for Swagger server URL
 
-# Optional: Email Configuration (not used in this project yet)
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+# ── Cloudinary (image upload) ────────────────────
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+# ── Stripe ───────────────────────────────────────
+STRIPE_API_KEY=sk_test_...
+
+# ── External Hotel APIs (RapidAPI) ───────────────
+RAPID_API_KEY=your_rapidapi_key
+RAPID_API_HOST=booking-com.p.rapidapi.com
+
+# ── Google Places ────────────────────────────────
+GOOGLE_PLACES_API_KEY=AIza...
+# OR
+GOOGLE_MAPS_API_KEY=AIza...
+
+# ── Tripadvisor (optional) ───────────────────────
+TRIPADVISOR_API_KEY=your_rapidapi_key
+TRIPADVISOR_API_HOST=tripadvisor16.p.rapidapi.com
+
+# ── Expedia (optional) ───────────────────────────
+EXPEDIA_API_KEY=your_rapidapi_key
+EXPEDIA_API_HOST=expedia-com2.p.rapidapi.com
+
+# ── Google OAuth (optional) ──────────────────────
+GOOGLE_CLIENT_ID=your_google_client_id
 ```
 
-### Frontend (.env)
+> **Graceful degradation**: The app runs without Tripadvisor, Expedia, or Google Places keys — those enrichment layers simply return empty/fallback data.
 
-Create a `.env` file in the `hotel-booking-frontend` directory:
+### Frontend — `.env`
 
 ```env
-# API Configuration
-VITE_API_BASE_URL=http://localhost:7002
-
-# Stripe Configuration
-VITE_STRIPE_PUBLISHABLE_KEY=pk_test_your-stripe-publishable-key
-
-# Optional: Analytics (not used in this project yet)
-VITE_GOOGLE_ANALYTICS_ID=GA_MEASUREMENT_ID
+VITE_API_BASE_URL=http://localhost:5000
+VITE_STRIPE_PUB_KEY=pk_test_...
+VITE_GOOGLE_CLIENT_ID=optional_google_oauth_client_id
+VITE_GOOGLE_MAPS_API_KEY=optional_for_static_maps
 ```
 
-### How to Get Environment Variables
+---
 
-#### 1. MongoDB Atlas Setup
+## 🐳 Docker Setup
 
-1. Create account at [MongoDB Atlas](https://www.mongodb.com/atlas)
-2. Create a new cluster
-3. Get connection string from "Connect" button
-4. Replace `<password>` with your database password
-
-#### 2. Cloudinary Setup
-
-1. Create account at [Cloudinary](https://cloudinary.com/)
-2. Go to Dashboard → API Keys
-3. Copy Cloud Name, API Key, and API Secret
-
-#### 3. Stripe Setup
-
-1. Create account at [Stripe](https://stripe.com/)
-2. Go to Developers → API Keys
-3. Copy Publishable Key and Secret Key (use test keys for development)
-
-#### 4. JWT Secret
-
-Generate a secure random string:
+The backend ships with a production-ready multi-stage Dockerfile.
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+# Build the Docker image (run from repo root)
+docker build -f hotel-booking-backend/Dockerfile -t stayease-backend .
+
+# Run the container
+docker run -p 3000:3000 \
+  -e MONGODB_CONNECTION_STRING="..." \
+  -e JWT_SECRET_KEY="..." \
+  -e STRIPE_API_KEY="..." \
+  stayease-backend
 ```
 
----
-
-## 📚 API Documentation
-
-### Authentication Endpoints
-
-#### POST /api/auth/register
-
-Register a new user account.
-
-```typescript
-interface RegisterData {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  address?: Address;
-}
-```
-
-#### POST /api/auth/login
-
-Authenticate user and get JWT token.
-
-```typescript
-interface LoginData {
-  email: string;
-  password: string;
-}
-```
-
-#### POST /api/auth/logout
-
-Logout user and invalidate session.
-
-#### GET /api/auth/validate-token
-
-Validate JWT token and return user data.
-
-### Hotel Management Endpoints
-
-#### GET /api/hotels
-
-Get all hotels with pagination and filtering.
-
-```typescript
-interface HotelSearchParams {
-  destination?: string;
-  checkIn?: string;
-  checkOut?: string;
-  adultCount?: string;
-  childCount?: string;
-  page?: string;
-  facilities?: string[];
-  types?: string[];
-  stars?: string[];
-  maxPrice?: string;
-  sortOption?: string;
-}
-```
-
-#### GET /api/hotels/:id
-
-Get specific hotel details.
-
-#### POST /api/my-hotels
-
-Create a new hotel (requires authentication).
-
-```typescript
-interface HotelFormData {
-  name: string;
-  city: string;
-  country: string;
-  description: string;
-  type: string[];
-  adultCount: number;
-  childCount: number;
-  facilities: string[];
-  pricePerNight: number;
-  starRating: number;
-  imageFiles: File[];
-}
-```
-
-#### PUT /api/my-hotels/:id
-
-Update hotel details.
-
-#### DELETE /api/my-hotels/:id
-
-Delete hotel listing.
-
-### Booking Endpoints
-
-#### POST /api/hotels/:id/bookings
-
-Create a new booking.
-
-```typescript
-interface BookingData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  adultCount: number;
-  childCount: number;
-  checkIn: Date;
-  checkOut: Date;
-  totalCost: number;
-}
-```
-
-#### GET /api/my-bookings
-
-Get user's booking history.
-
-#### GET /api/bookings/hotel/:id
-
-Get all bookings for a specific hotel.
-
-### Business Insights Endpoints
-
-#### GET /api/business-insights/dashboard
-
-Get comprehensive business insights data.
-
-```typescript
-interface BusinessInsightsData {
-  totalRevenue: number;
-  totalBookings: number;
-  overview: OverviewData;
-  popularDestinations: DestinationData[];
-  dailyBookings: BookingData[];
-  hotelPerformance: HotelData[];
-}
-```
-
-#### GET /api/business-insights/forecast
-
-Get predictive forecasting data.
-
-#### GET /api/business-insights/system-stats
-
-Get system statistics (memory, CPU, uptime, bookings).
-
-### Health Check Endpoints
-
-#### GET /api/health
-
-Basic health check with status and uptime.
-
-#### GET /api/health/detailed
-
-Detailed system metrics including memory usage and performance data.
-
----
-
-## 🧩 Key Components
-
-### AdvancedSearch Component
-
-A comprehensive search component with multiple filters and real-time suggestions.
-
-```typescript
-// Usage Example
-<AdvancedSearch
-  onSearch={(searchData) => {
-    // Handle search with advanced filters
-    console.log(searchData);
-  }}
-  isExpanded={false}
-/>
-```
-
-**Features:**
-
-- Destination autocomplete with API suggestions
-- Date range selection
-- Guest count management
-- Advanced filters (price, rating, facilities)
-- Quick search for popular destinations
-
-### Hero Component
-
-Landing page hero section with gradient background and search integration.
-
-```typescript
-// Usage Example
-<Hero
-  onSearch={(searchData) => {
-    // Handle search from hero section
-  }}
-/>
-```
-
-**Features:**
-
-- Full-width gradient background
-- Integrated search component
-- Feature highlights
-- Responsive design
-
-### AnalyticsDashboard Component
-
-Comprehensive analytics dashboard with charts and metrics.
-
-```typescript
-// Usage Example
-<AnalyticsDashboard />
-```
-
-**Features:**
-
-- Revenue charts and trends
-- Booking analytics
-- Performance metrics
-- Forecasting data
-- Interactive charts with Recharts
-
-### BookingLogModal Component
-
-Modal for viewing detailed booking information.
-
-```typescript
-// Usage Example
-<BookingLogModal
-  isOpen={isModalOpen}
-  onClose={() => setIsModalOpen(false)}
-  hotelId="hotel-id"
-  hotelName="Hotel Name"
-/>
-```
-
-**Features:**
-
-- Detailed booking information
-- Status management
-- Payment details
-- Guest information
-
----
-
-## 🗄 Database Schema
-
-### User Model
-
-```typescript
-interface UserType {
-  _id: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  role: "user" | "admin" | "hotel_owner";
-  phone?: string;
-  address?: Address;
-  preferences?: UserPreferences;
-  totalBookings?: number;
-  totalSpent?: number;
-  lastLogin?: Date;
-  isActive?: boolean;
-  emailVerified?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-```
-
-### Hotel Model
-
-```typescript
-interface HotelType {
-  _id: string;
-  userId: string;
-  name: string;
-  city: string;
-  country: string;
-  description: string;
-  type: string[];
-  adultCount: number;
-  childCount: number;
-  facilities: string[];
-  pricePerNight: number;
-  starRating: number;
-  imageUrls: string[];
-  location?: Location;
-  contact?: Contact;
-  policies?: Policies;
-  amenities?: Amenities;
-  totalBookings?: number;
-  totalRevenue?: number;
-  averageRating?: number;
-  reviewCount?: number;
-  occupancyRate?: number;
-  isActive?: boolean;
-  isFeatured?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-```
-
-### Booking Model
-
-```typescript
-interface BookingType {
-  _id: string;
-  userId: string;
-  hotelId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone?: string;
-  adultCount: number;
-  childCount: number;
-  checkIn: Date;
-  checkOut: Date;
-  totalCost: number;
-  status: "pending" | "confirmed" | "cancelled" | "completed" | "refunded";
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
-  paymentMethod?: string;
-  specialRequests?: string;
-  cancellationReason?: string;
-  refundAmount?: number;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-```
-
----
-
-## 🔐 Authentication & Authorization
-
-### JWT Implementation
-
-The application uses JWT tokens for secure authentication:
-
-```typescript
-// Token generation
-const token = jwt.sign(
-  { userId: user._id, email: user.email, role: user.role },
-  process.env.JWT_SECRET!,
-  { expiresIn: process.env.JWT_EXPIRES_IN },
-);
-
-// Token verification middleware
-const verifyToken = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.cookies.auth_token;
-  if (!token) {
-    return res.status(401).json({ message: "Access denied" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
-    req.userId = decoded.userId;
-    next();
-  } catch (error) {
-    res.status(401).json({ message: "Invalid token" });
-  }
-};
-```
-
-### Role-based Access Control
-
-Different user roles have different permissions:
-
-- **User**: Can book hotels, view their bookings
-- **Hotel Owner**: Can manage their hotels, view analytics
-- **Admin**: Full access to all features
-
-```typescript
-// Role verification middleware
-const requireRole = (roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!roles.includes(req.userRole)) {
-      return res.status(403).json({ message: "Insufficient permissions" });
-    }
-    next();
-  };
-};
-```
-
----
-
-## 💳 Payment Integration
-
-### Stripe Integration
-
-The application integrates with Stripe for secure payment processing:
-
-```typescript
-// Create payment intent
-const paymentIntent = await stripe.paymentIntents.create({
-  amount: totalCost * 100, // Convert to cents
-  currency: "usd",
-  metadata: {
-    hotelId,
-    userId,
-    bookingId,
-  },
-});
-
-// Payment confirmation
-const confirmPayment = await stripe.paymentIntents.confirm(paymentIntentId, {
-  payment_method: paymentMethodId,
-});
-```
-
-### Payment Flow
-
-1. User selects hotel and dates
-2. System calculates total cost
-3. Stripe payment intent is created
-4. User completes payment
-5. Booking is confirmed
-6. Confirmation email is sent
-
----
-
-## 🔍 Search & Filtering
-
-### Advanced Search Implementation
-
-The search system supports multiple filtering options:
-
-```typescript
-// Search query building
-const buildSearchQuery = (searchParams: SearchParams) => {
-  const query: any = {};
-
-  if (searchParams.destination) {
-    query.$or = [
-      { city: { $regex: searchParams.destination, $options: "i" } },
-      { country: { $regex: searchParams.destination, $options: "i" } },
-      { name: { $regex: searchParams.destination, $options: "i" } },
-    ];
-  }
-
-  if (searchParams.maxPrice) {
-    query.pricePerNight = { $lte: parseInt(searchParams.maxPrice) };
-  }
-
-  if (searchParams.facilities?.length) {
-    query.facilities = { $all: searchParams.facilities };
-  }
-
-  if (searchParams.types?.length) {
-    query.type = { $in: searchParams.types };
-  }
-
-  return query;
-};
-```
-
-### Filter Components
-
-Reusable filter components for different criteria:
-
-```typescript
-// Price Filter Component
-const PriceFilter = ({ onPriceChange }: PriceFilterProps) => {
-  const [priceRange, setPriceRange] = useState([0, 1000]);
-
-  return (
-    <div className="space-y-2">
-      <label className="text-sm font-medium">Price Range</label>
-      <Slider
-        value={priceRange}
-        onChange={setPriceRange}
-        min={0}
-        max={1000}
-        step={10}
-      />
-      <div className="flex justify-between text-xs text-gray-500">
-        <span>£{priceRange[0]}</span>
-        <span>£{priceRange[1]}</span>
-      </div>
-    </div>
-  );
-};
-```
-
----
-
-## 📊 Analytics Dashboard
-
-### Real-time Analytics
-
-The analytics dashboard provides comprehensive insights:
-
-```typescript
-// Analytics data structure
-interface AnalyticsData {
-  overview: {
-    totalRevenue: number;
-    totalBookings: number;
-    averageRating: number;
-    occupancyRate: number;
-  };
-  trends: {
-    revenue: RevenueData[];
-    bookings: BookingData[];
-    ratings: RatingData[];
-  };
-  topPerformers: {
-    hotels: HotelAnalytics[];
-    destinations: DestinationAnalytics[];
-  };
-  forecasts: {
-    revenue: ForecastData[];
-    bookings: ForecastData[];
-  };
-}
-```
-
-### Chart Components
-
-Interactive charts using Recharts library:
-
-```typescript
-// Revenue Chart Component
-const RevenueChart = ({ data }: { data: RevenueData[] }) => {
-  return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="date" />
-        <YAxis />
-        <Tooltip />
-        <Line
-          type="monotone"
-          dataKey="revenue"
-          stroke="#8884d8"
-          strokeWidth={2}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-};
-```
+**Dockerfile highlights:**
+- Stage 1 (`builder`): installs all deps, compiles TypeScript
+- Stage 2 (`runner`): production deps only, copies compiled `dist/`
+- `HEALTHCHECK` polls `/api/health` every 30 seconds
+- Exposes port 3000 (map to any host port)
+
+**Coolify / VPS deployment:**
+- Base Directory: `.` (repo root)
+- Dockerfile path: `hotel-booking-backend/Dockerfile`
+- Set `PORT=3000` and map `host:container` accordingly
 
 ---
 
 ## 🧪 Testing
 
-### End-to-End Testing
-
-The project includes comprehensive E2E tests using Playwright:
+### E2E Tests (Playwright)
 
 ```bash
-# Run E2E tests
 cd e2e-tests
 npm install
-npm test
+npx playwright install  # install browsers
+
+# Run all tests
+npx playwright test
+
+# Run in headed mode (see browser)
+npx playwright test --headed
+
+# Run specific test file
+npx playwright test tests/auth.spec.ts
 ```
 
-### Test Structure
+**Test coverage:**
+- `auth.spec.ts` — sign-in and registration flows
+- `manage-hotels.spec.ts` — add hotel, view hotels list, edit hotel
+- `search-hotels.spec.ts` — search results, hotel detail, full booking flow
 
-```typescript
-// Example test: Hotel search functionality
-test("should search hotels with filters", async ({ page }) => {
-  await page.goto("/search");
-
-  // Fill search form
-  await page.fill('[data-testid="destination-input"]', "London");
-  await page.selectOption('[data-testid="adult-count"]', "2");
-  await page.click('[data-testid="search-button"]');
-
-  // Verify results
-  await expect(page.locator('[data-testid="hotel-card"]')).toHaveCount(5);
-});
-```
-
-### Test Coverage
-
-- Authentication flows
-- Hotel search and filtering
-- Booking process
-- Hotel management
-- Analytics dashboard
-- API endpoints
+Tests run against `http://localhost:5174` with a pre-seeded MongoDB.
 
 ---
 
-## 🚀 Deployment
+## 🌐 Deployment
 
-### Backend Deployment (Coolify on VPS)
-
-1. **Prepare for deployment:**
-
-```bash
-cd hotel-booking-backend
-npm run build
-```
-
-1. **Environment variables setup:**
-   - Set all required environment variables in Coolify
-   - Ensure MongoDB connection string is production-ready
-   - Configure CORS for production domain
-
-2. **Deploy via Coolify:**
-   - Connect your GitHub repository to Coolify
-   - Redeploy the backend service when you push changes
-
-### Frontend Deployment (Netlify/Vercel)
-
-1. **Build the application:**
+### Frontend → Vercel
 
 ```bash
 cd hotel-booking-frontend
 npm run build
+# Push to GitHub, connect repo to Vercel
+# Set environment variables in Vercel dashboard
 ```
 
-1. **Deploy to Netlify:**
+`vercel.json` is pre-configured with SPA rewrites and API base URL.
 
-```bash
-# Connect your GitHub repository
-# Netlify will auto-deploy on push to main branch
-```
+### Backend → Render / Railway / Coolify
 
-1. **Environment variables:**
-   - Set `VITE_API_BASE_URL` to your production backend URL
-   - Configure Stripe keys for production
+- Set all backend environment variables in your hosting dashboard
+- Use the `hotel-booking-backend/Dockerfile` for containerized deployment
+- MongoDB: use Atlas for production
 
-### Production Checklist
+### Backend → Coolify (self-hosted VPS)
 
-- [ ] Environment variables configured
-- [ ] Database connection secured
-- [ ] CORS settings updated
-- [ ] SSL certificates installed
-- [ ] Error monitoring setup
-- [ ] Performance monitoring enabled
-- [ ] Backup strategy implemented
+1. Connect GitHub repository
+2. Select `hotel-booking-backend/Dockerfile` as the Dockerfile path
+3. Set Base Directory to `.` (repo root, required for `shared/` access)
+4. Configure environment variables
+5. Deploy
+
+---
+
+## 🗺️ Roadmap
+
+- [ ] WebSocket real-time booking notifications
+- [ ] Review submission after completed stays
+- [ ] Hotel availability calendar (room-level)
+- [ ] Email confirmation system (Nodemailer/Resend)
+- [ ] Multi-language support (i18n)
+- [ ] Mobile app (React Native)
+- [ ] Redis caching for high-traffic routes
+- [ ] Rate limiting per user (not just per IP)
+- [ ] Loyalty/rewards points system
+- [ ] Webhook for Stripe payment events
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! Please follow these steps:
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Commit your changes: `git commit -m 'feat: add your feature'`
+4. Push to the branch: `git push origin feature/your-feature`
+5. Open a Pull Request
 
-1. **Fork the repository**
-2. **Create a feature branch:**
+Please follow the existing TypeScript conventions and ensure E2E tests pass.
 
-```bash
-git checkout -b feature/amazing-feature
-```
+---
 
-1. **Make your changes and commit:**
+## 👨‍💻 Author
 
-```bash
-git commit -m 'Add amazing feature'
-```
+**Bhanuprasad L**
 
-1. **Push to your branch:**
+Full-Stack Developer — MERN Stack · TypeScript · Cloud Integrations
 
-```bash
-git push origin feature/amazing-feature
-```
-
-1. **Open a Pull Request**
-
-### Contribution Guidelines
-
-- Follow TypeScript best practices
-- Write comprehensive tests
-- Update documentation
-- Follow the existing code style
-- Ensure all tests pass
+[![GitHub](https://img.shields.io/badge/GitHub-bhanurx100-black?logo=github)](https://github.com/bhanurx100)
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 ---
 
-## 🎯 Learning Outcomes
-
-### What You'll Learn
-
-- **Full-Stack Development**: Complete MERN stack application
-- **TypeScript**: Type-safe development practices
-- **Modern React**: Hooks, Context API, React Query
-- **Database Design**: MongoDB schema design and relationships
-- **Authentication**: JWT-based authentication system
-- **Payment Integration**: Stripe payment processing
-- **File Upload**: Cloudinary image management
-- **API Design**: RESTful API with Swagger documentation
-- **State Management**: Server and client state management
-- **Testing**: End-to-end testing with Playwright
-- **Deployment**: Production deployment strategies
-
-### Key Concepts Demonstrated
-
-- **Component Architecture**: Reusable, modular components
-- **Form Handling**: Complex forms with validation
-- **Search & Filtering**: Advanced search with multiple criteria
-- **Analytics**: Real-time data visualization
-- **Security**: Authentication, authorization, and data protection
-- **Performance**: Optimization techniques and best practices
-- **User Experience**: Responsive design and accessibility
-
----
-
-## 🔗 Useful Resources
-
-### Documentation
-
-- [React Documentation](https://react.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [Express.js Guide](https://expressjs.com/en/guide/routing.html)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
-### Tools & Libraries
-
-- [Vite](https://vitejs.dev/) - Fast build tool
-- [Shadcn UI](https://ui.shadcn.com/) - Component library
-- [React Query](https://tanstack.com/query/latest) - Data fetching
-- [Stripe](https://stripe.com/docs) - Payment processing
-- [Cloudinary](https://cloudinary.com/documentation) - Image management
-
-### Best Practices
-
-- [React Best Practices](https://react.dev/learn)
-- [TypeScript Best Practices](https://www.typescriptlang.org/docs/handbook/intro.html)
-- [MongoDB Best Practices](https://docs.mongodb.com/manual/data-modeling/)
-- [API Design Best Practices](https://restfulapi.net/)
-
----
-
+<div align="center">
+<sub>Built with ❤️ by Bhanuprasad L · StayEase — Book smarter, stay better.</sub>
+</div>
