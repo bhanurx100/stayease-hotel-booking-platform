@@ -23,21 +23,21 @@
 
 <div align="center">
 
-| Home — Hero & Search | Search Results |
+| Home — Hero & Search | Top Stays |
 |---|---|
-| ![Home](assets/1.png) | ![Search](assets/2.png) |
+| ![Home](assets/1.png) | ![Top stays](assets/2.png) |
 
-| Hotel Detail — Gallery & Rooms | Booking Flow |
+|  Popular Destinations| Search Results |
 |---|---|
-| ![Detail](assets/3.png) | ![Booking](assets/4.png) |
+| ![Destinations](assets/3.png) | ![Search Results](assets/4.png) |
 
-| AI Hotel Chatbot | Analytics Dashboard |
+| Hotel Detail — Gallery & Rooms | AI Hotel Chatbot |
 |---|---|
-| ![AI Chatbot](assets/5.png) | ![Analytics](assets/6.png) |
+| ![Detail](assets/5.png) | ![AI Chatbot](assets/6.png) |
 
-| Owner Dashboard | Admin & Business Insights |
+| Adding Hotel | Booking card |
 |---|---|
-| ![Owner Dashboard](assets/7.png) | ![Admin](assets/8.png) |
+| ![Adding Hotel ](assets/7.png) | ![Booking Card](assets/8.png) |
 
 </div>
 
