@@ -32,7 +32,7 @@
 
 import { useState }          from "react";
 import { useForm }           from "react-hook-form";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import * as apiClient        from "../api-client";
 import useAppContext         from "../hooks/useAppContext";
 import { Building2, Eye, EyeOff, Loader2, Zap } from "lucide-react";
@@ -60,6 +60,9 @@ const DEMO_ACCOUNTS = [
 const SignIn = () => {
   const { showToast } = useAppContext();
   const navigate      = useNavigate();
+  const location      = useLocation();
+  const redirectTo    =
+    (location.state as { from?: { pathname?: string } })?.from?.pathname ?? "/";
   const [showPwd,       setShowPwd]       = useState(false);
   const [isLoading,     setIsLoading]     = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -98,7 +101,7 @@ const SignIn = () => {
       }
 
       showToast({ title: "Welcome back to Stayease!", type: "SUCCESS" });
-      navigate("/");
+      navigate(redirectTo);
     } catch (err: any) {
       showToast({
         title: err?.message ?? "Login failed. Check your email and password.",
@@ -125,7 +128,7 @@ const SignIn = () => {
         title: `Welcome, ${response?.firstName ?? ""}! Signed in with Google.`,
         type:  "SUCCESS",
       });
-      navigate("/");
+      navigate(redirectTo);
     } catch (err: any) {
       showToast({
         title: err?.message ?? "Google sign-in failed. Please use email and password.",

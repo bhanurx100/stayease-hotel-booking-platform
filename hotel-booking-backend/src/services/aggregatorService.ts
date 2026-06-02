@@ -761,6 +761,22 @@ export async function enrichDBHotel(dbHotel: any): Promise<EnrichedHotel> {
 
   const reviewsSummary = buildReviewsSummary(finalRating10, reviewCount, ratingWordStr, finalReviews);
 
+  const dbCoords =
+    dbHotel?.location?.latitude != null &&
+    dbHotel?.location?.longitude != null &&
+    Number(dbHotel.location.latitude) !== 0 &&
+    Number(dbHotel.location.longitude) !== 0
+      ? {
+          lat: Number(dbHotel.location.latitude),
+          lng: Number(dbHotel.location.longitude),
+        }
+      : null;
+
+  const coordinates =
+    google?.coordinates?.lat && google.coordinates.lat !== 0
+      ? google.coordinates
+      : dbCoords;
+
   const enriched: EnrichedHotel = {
     _id:           dbHotel._id?.toString(),
     source:        "db",
@@ -768,7 +784,7 @@ export async function enrichDBHotel(dbHotel: any): Promise<EnrichedHotel> {
     city:          dbHotel.city,
     country:       dbHotel.country,
     address:       google?.formattedAddress ?? `${dbHotel.city}, ${dbHotel.country}`,
-    coordinates:   google?.coordinates?.lat ? google.coordinates : null,
+    coordinates,
     pricePerNight: dbHotel.pricePerNight,
     currency:      "INR",
     rating:        finalRating5,

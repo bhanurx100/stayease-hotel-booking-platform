@@ -50,7 +50,7 @@ app.use(
   cors({
     origin: [
       process.env.FRONTEND_URL,
-      "http://localhost:5173",
+      "http://localhost:5174",
       "http://localhost:3000",
       "https://stayease-hotel-booking-platform.vercel.app",
     ],
@@ -75,6 +75,7 @@ app.get("/api/health", (_req, res) => {
     status:   "ok",
     mongo:    mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     time:     new Date().toISOString(),
+    isDetailed: process.env.IS_DETAILED === "true",
   });
 });
 

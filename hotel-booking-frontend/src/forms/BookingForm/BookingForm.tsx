@@ -1,7 +1,8 @@
 import { useForm } from "react-hook-form";
-import { PaymentIntentResponse, UserType } from "../../../../shared/types";
+import { HotelType, PaymentIntentResponse, UserType } from "../../../../shared/types";
+import { queryClient } from "../../main";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
-import { StripeCardElement } from "@stripe/stripe-js";
+import { Stripe, StripeCardElement, StripeElements } from "@stripe/stripe-js";
 import useSearchContext from "../../hooks/useSearchContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation } from "react-query";
@@ -27,6 +28,13 @@ import { useState } from "react";
 type Props = {
   currentUser: UserType;
   paymentIntent: PaymentIntentResponse;
+  hotel?: HotelType;
+  demoMode?: boolean;
+};
+
+type FieldsProps = Props & {
+  stripe?: Stripe | null;
+  elements?: StripeElements | null;
 };
 
 export type BookingFormData = {
@@ -44,10 +52,21 @@ export type BookingFormData = {
   specialRequests?: string;
 };
 
-const BookingForm = ({ currentUser, paymentIntent }: Props) => {
+/** Stripe hooks — must only render inside <Elements> (see default export below). */
+const BookingFormWithStripe = (props: Props) => {
   const stripe = useStripe();
   const elements = useElements();
+  return <BookingFormFields {...props} stripe={stripe} elements={elements} />;
+};
 
+const BookingFormFields = ({
+  currentUser,
+  paymentIntent,
+  hotel,
+  demoMode = false,
+  stripe = null,
+  elements = null,
+}: FieldsProps) => {
   const search = useSearchContext();
   const { hotelId } = useParams();
   const navigate = useNavigate();
@@ -62,23 +81,37 @@ const BookingForm = ({ currentUser, paymentIntent }: Props) => {
   const { mutate: bookRoom, isLoading } = useMutation(
     apiClient.createRoomBooking,
     {
-      onSuccess: () => {
+      onSuccess: (data: { bookingId?: string }) => {
+        queryClient.invalidateQueries("fetchMyBookings");
+        queryClient.invalidateQueries("fetchCurrentUser");
+
         showToast({
           title: "Booking Successful",
-          description: "Your hotel booking has been confirmed successfully!",
+          description: "Your reservation has been confirmed!",
           type: "SUCCESS",
         });
 
-        // Navigate to My Bookings page after a short delay
-        setTimeout(() => {
-          navigate("/my-bookings");
-        }, 1500);
+        navigate("/booking/success", {
+          state: {
+            bookingId:  data?.bookingId,
+            hotelName:  hotel?.name,
+            city:       hotel?.city ? `${hotel.city}, ${hotel.country}` : undefined,
+            checkIn:    search.checkIn.toISOString(),
+            checkOut:   search.checkOut.toISOString(),
+            totalCost:  paymentIntent.totalCost,
+            adultCount: search.adultCount,
+            childCount: search.childCount,
+          },
+        });
       },
-      onError: () => {
+      onError: (err: any) => {
+        const msg =
+          err?.response?.data?.message ??
+          err?.message ??
+          "There was an error processing your booking.";
         showToast({
           title: "Booking Failed",
-          description:
-            "There was an error processing your booking. Please try again.",
+          description: msg,
           type: "ERROR",
         });
       },
@@ -116,22 +149,42 @@ MM/YY: 12/35 CVC: 123`;
   };
 
   const onSubmit = async (formData: BookingFormData) => {
-    if (!stripe || !elements) {
-      return;
-    }
-
-    // Add the local state values to the form data
     const completeFormData = {
       ...formData,
       phone,
       specialRequests,
+      paymentIntentId: paymentIntent.paymentIntentId,
+      totalCost:       paymentIntent.totalCost,
     };
+
+    if (demoMode || paymentIntent.demoMode) {
+      bookRoom(completeFormData);
+      return;
+    }
+
+    if (!stripe || !elements) {
+      showToast({
+        title: "Payment not ready",
+        description: "Please wait for the payment form to load.",
+        type: "ERROR",
+      });
+      return;
+    }
 
     const result = await stripe.confirmCardPayment(paymentIntent.clientSecret, {
       payment_method: {
         card: elements.getElement(CardElement) as StripeCardElement,
       },
     });
+
+    if (result.error) {
+      showToast({
+        title: "Payment failed",
+        description: result.error.message ?? "Card payment was declined.",
+        type: "ERROR",
+      });
+      return;
+    }
 
     if (result.paymentIntent?.status === "succeeded") {
       bookRoom({
@@ -251,7 +304,7 @@ MM/YY: 12/35 CVC: 123`;
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700 font-medium">Total Cost</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  £{paymentIntent.totalCost.toFixed(2)}
+                  ₹{paymentIntent.totalCost.toLocaleString("en-IN")}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -262,40 +315,57 @@ MM/YY: 12/35 CVC: 123`;
           </div>
 
           {/* Payment Details */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-600" />
-              Payment Details
-            </h3>
+          {demoMode || paymentIntent.demoMode ? (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                Demo Payment
+              </h3>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-800">
+                <p className="font-semibold mb-2">No real charge in development</p>
+                <p className="mb-2">Use these test card details if prompted elsewhere:</p>
+                <div className="font-mono text-xs bg-white border border-yellow-300 rounded p-3">
+                  <div>Card: 4242 4242 4242 4242</div>
+                  <div>MM/YY: 12/35 · CVC: 123 · ZIP: 12345</div>
+                </div>
+                <p className="mt-2 text-yellow-700">
+                  Click Confirm Booking — demo mode saves your reservation instantly.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-600" />
+                Payment Details
+              </h3>
 
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <CardElement
-                id="payment-element"
-                className="text-sm"
-                options={{
-                  style: {
-                    base: {
-                      fontSize: "16px",
-                      color: "#424770",
-                      "::placeholder": {
-                        color: "#aab7c4",
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <CardElement
+                  id="payment-element"
+                  className="text-sm"
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: "16px",
+                        color: "#424770",
+                        "::placeholder": { color: "#aab7c4" },
                       },
+                      invalid: { color: "#9e2146" },
                     },
-                    invalid: {
-                      color: "#9e2146",
-                    },
-                  },
-                }}
-              />
-            </div>
+                  }}
+                />
+              </div>
 
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <Shield className="h-3 w-3 text-green-500" />
-              Your payment information is secure and encrypted
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Shield className="h-3 w-3 text-green-500" />
+                Your payment information is secure and encrypted
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Test Credentials Note */}
+          {!demoMode && !paymentIntent.demoMode && (
           <div className="space-y-4">
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
@@ -338,6 +408,7 @@ MM/YY: 12/35 CVC: 123`;
               </div>
             </div>
           </div>
+          )}
 
           {/* Submit Button */}
           <div className="pt-4">
@@ -381,6 +452,13 @@ MM/YY: 12/35 CVC: 123`;
       </CardContent>
     </div>
   );
+};
+
+const BookingForm = (props: Props) => {
+  if (props.demoMode || props.paymentIntent.demoMode) {
+    return <BookingFormFields {...props} />;
+  }
+  return <BookingFormWithStripe {...props} />;
 };
 
 export default BookingForm;

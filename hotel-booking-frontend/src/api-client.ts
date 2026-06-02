@@ -329,7 +329,9 @@ export const createPaymentIntent = async (
   return response.data;
 };
 
-export const createRoomBooking = async (formData: BookingFormData): Promise<any> => {
+export const createRoomBooking = async (
+  formData: BookingFormData
+): Promise<{ bookingId: string; message: string }> => {
   const response = await axiosInstance.post(
     `/api/hotels/${formData.hotelId}/bookings`,
     formData

@@ -31,7 +31,6 @@ declare global {
     }
   }
 }
-
 const verifyToken = (req: Request, res: Response, next: NextFunction): void => {
   // ── Source 1: httpOnly cookie ─────────────────────────────────────────────
   const cookieToken = req.cookies?.auth_token as string | undefined;

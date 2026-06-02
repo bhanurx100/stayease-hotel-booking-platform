@@ -135,4 +135,11 @@ export type PaymentIntentResponse = {
   paymentIntentId: string;
   clientSecret: string;
   totalCost: number;
+  demoMode?: boolean;
+  numberOfNights?: number;
+};
+
+export type BookingConfirmationResponse = {
+  bookingId: string;
+  message: string;
 };

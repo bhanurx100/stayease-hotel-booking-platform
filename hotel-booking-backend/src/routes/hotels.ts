@@ -35,6 +35,11 @@ import { param, validationResult } from "express-validator";
 import Stripe      from "stripe";
 import verifyToken from "../middleware/auth";
 import {
+  isDemoBookingEnabled,
+  isDemoPaymentIntentId,
+  createDemoPaymentIntentId,
+} from "../utils/demoBooking";
+import {
   fetchExternalHotels,
   getHotelDetails,
 } from "../services/externalHotelService";
@@ -43,8 +48,56 @@ import {
   enrichDBHotel,
 } from "../services/aggregatorService";
 
-const stripe = new Stripe(process.env.STRIPE_API_KEY as string);
-const router  = express.Router();
+const stripeKey = process.env.STRIPE_API_KEY?.trim();
+const stripe    = stripeKey ? new Stripe(stripeKey) : null;
+const router    = express.Router();
+
+async function persistBooking(
+  req: Request,
+  res: Response,
+  body: Record<string, unknown>,
+  totalCost: number
+): Promise<void> {
+  const checkIn  = body.checkIn  ? new Date(String(body.checkIn))  : new Date();
+  const checkOut = body.checkOut ? new Date(String(body.checkOut)) : new Date();
+
+  const newBooking = {
+    firstName:       String(body.firstName ?? ""),
+    lastName:        String(body.lastName ?? ""),
+    email:           String(body.email ?? ""),
+    phone:           body.phone ? String(body.phone) : undefined,
+    adultCount:      Number(body.adultCount) || 1,
+    childCount:      Number(body.childCount) || 0,
+    checkIn,
+    checkOut,
+    totalCost:       Number(body.totalCost) || totalCost,
+    paymentMethod:   isDemoPaymentIntentId(String(body.paymentIntentId ?? ""))
+      ? "demo_card"
+      : "stripe",
+    specialRequests: body.specialRequests ? String(body.specialRequests) : undefined,
+    userId:          req.userId,
+    hotelId:         req.params.hotelId,
+    createdAt:       new Date(),
+    status:          "confirmed",
+    paymentStatus:   "paid",
+  };
+
+  const booking = new Booking(newBooking);
+  await booking.save();
+
+  await Hotel.findByIdAndUpdate(req.params.hotelId, {
+    $inc: { totalBookings: 1, totalRevenue: newBooking.totalCost },
+  }).catch(() => null);
+
+  await User.findByIdAndUpdate(req.userId, {
+    $inc: { totalBookings: 1, totalSpent: newBooking.totalCost },
+  }).catch(() => null);
+
+  res.status(200).json({
+    bookingId: booking._id.toString(),
+    message:   "Booking confirmed",
+  });
+}
 
 // ─── GET /search — UNCHANGED ──────────────────────────────────────────────────
 
@@ -231,25 +284,52 @@ router.post(
   "/:hotelId/bookings/payment-intent",
   verifyToken,
   async (req: Request, res: Response) => {
-    const { numberOfNights } = req.body;
-    const hotelId = req.params.hotelId;
-    const hotel   = await Hotel.findById(hotelId);
-    if (!hotel) return res.status(400).json({ message: "Hotel not found" });
+    try {
+      const nights  = Math.max(1, Number(req.body.numberOfNights) || 1);
+      const hotelId = req.params.hotelId;
+      const hotel   = await Hotel.findById(hotelId);
+      if (!hotel) return res.status(400).json({ message: "Hotel not found" });
 
-    const totalCost = hotel.pricePerNight * numberOfNights;
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount:   totalCost * 100,
-      currency: "gbp",
-      metadata: { hotelId, userId: req.userId },
-    });
-    if (!paymentIntent.client_secret)
-      return res.status(500).json({ message: "Error creating payment intent" });
+      const totalCost = hotel.pricePerNight * nights;
 
-    res.send({
-      paymentIntentId: paymentIntent.id,
-      clientSecret:    paymentIntent.client_secret.toString(),
-      totalCost,
-    });
+      // Demo mode — no Stripe required (development default)
+      if (isDemoBookingEnabled()) {
+        const paymentIntentId = createDemoPaymentIntentId(hotelId, req.userId);
+        return res.send({
+          paymentIntentId,
+          clientSecret: `demo_secret_${paymentIntentId}`,
+          totalCost,
+          demoMode:     true,
+          numberOfNights: nights,
+        });
+      }
+
+      if (!stripe) {
+        return res.status(503).json({
+          message: "Payment service unavailable. Set STRIPE_API_KEY or enable demo mode.",
+        });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount:   Math.round(totalCost * 100),
+        currency: "inr",
+        metadata: { hotelId, userId: req.userId, numberOfNights: String(nights) },
+      });
+      if (!paymentIntent.client_secret) {
+        return res.status(500).json({ message: "Error creating payment intent" });
+      }
+
+      res.send({
+        paymentIntentId: paymentIntent.id,
+        clientSecret:    paymentIntent.client_secret.toString(),
+        totalCost,
+        demoMode:        false,
+        numberOfNights:  nights,
+      });
+    } catch (error: any) {
+      console.error("[payment-intent]", error?.message ?? error);
+      res.status(500).json({ message: error?.message ?? "Failed to create payment intent" });
+    }
   }
 );
 
@@ -260,39 +340,45 @@ router.post(
   verifyToken,
   async (req: Request, res: Response) => {
     try {
-      const paymentIntentId = req.body.paymentIntentId;
-      const paymentIntent   = await stripe.paymentIntents.retrieve(paymentIntentId as string);
-      if (!paymentIntent)
-        return res.status(400).json({ message: "payment intent not found" });
+      const paymentIntentId = String(req.body.paymentIntentId ?? "");
+      const hotel           = await Hotel.findById(req.params.hotelId);
+      if (!hotel) return res.status(400).json({ message: "Hotel not found" });
+
+      const nights    = Math.max(1, Number(req.body.numberOfNights) || 1);
+      const totalCost = Number(req.body.totalCost) || hotel.pricePerNight * nights;
+
+      // Demo payment — always succeeds in development
+      if (isDemoPaymentIntentId(paymentIntentId)) {
+        if (!isDemoBookingEnabled()) {
+          return res.status(400).json({ message: "Demo bookings are disabled." });
+        }
+        return await persistBooking(req, res, req.body, totalCost);
+      }
+
+      if (!stripe) {
+        return res.status(503).json({ message: "Payment service unavailable." });
+      }
+
+      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (!paymentIntent) {
+        return res.status(400).json({ message: "Payment intent not found" });
+      }
       if (
         paymentIntent.metadata.hotelId !== req.params.hotelId ||
         paymentIntent.metadata.userId  !== req.userId
-      ) return res.status(400).json({ message: "payment intent mismatch" });
-      if (paymentIntent.status !== "succeeded")
+      ) {
+        return res.status(400).json({ message: "Payment intent mismatch" });
+      }
+      if (paymentIntent.status !== "succeeded") {
         return res.status(400).json({
-          message: `payment intent not succeeded. Status: ${paymentIntent.status}`,
+          message: `Payment not completed. Status: ${paymentIntent.status}`,
         });
+      }
 
-      const newBooking: BookingType = {
-        ...req.body,
-        userId:        req.userId,
-        hotelId:       req.params.hotelId,
-        createdAt:     new Date(),
-        status:        "confirmed",
-        paymentStatus: "paid",
-      };
-      const booking = new Booking(newBooking);
-      await booking.save();
-      await Hotel.findByIdAndUpdate(req.params.hotelId, {
-        $inc: { totalBookings: 1, totalRevenue: newBooking.totalCost },
-      });
-      await User.findByIdAndUpdate(req.userId, {
-        $inc: { totalBookings: 1, totalSpent: newBooking.totalCost },
-      });
-      res.status(200).send();
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "something went wrong" });
+      await persistBooking(req, res, req.body, totalCost);
+    } catch (error: any) {
+      console.error("[create booking]", error?.message ?? error);
+      res.status(500).json({ message: error?.message ?? "Something went wrong" });
     }
   }
 );
