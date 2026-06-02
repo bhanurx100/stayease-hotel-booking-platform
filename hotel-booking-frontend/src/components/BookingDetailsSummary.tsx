@@ -1,4 +1,5 @@
 import { HotelType } from "../../../shared/types";
+import { guestsSummary } from "../lib/guest-labels";
 
 type Props = {
   checkIn: Date;
@@ -42,7 +43,7 @@ const BookingDetailsSummary = ({
       <div>
         Guests{" "}
         <div className="font-bold">
-          {adultCount} adults & {childCount} children
+          {guestsSummary(adultCount, childCount)}
         </div>
       </div>
     </div>

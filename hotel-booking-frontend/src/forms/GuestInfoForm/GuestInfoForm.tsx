@@ -15,6 +15,8 @@ import {
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/badge";
 import { Calendar, Users, User, Baby, CreditCard } from "lucide-react";
+import { useCurrency } from "../../contexts/CurrencyContext";
+import { adultsLabel, childrenLabel } from "../../lib/guest-labels";
 
 type Props = {
   hotelId: string;
@@ -29,6 +31,7 @@ type GuestInfoFormData = {
 };
 
 const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
+  const { formatPrice } = useCurrency();
   const search = useSearchContext();
   const { isLoggedIn } = useAppContext();
   const navigate = useNavigate();
@@ -51,6 +54,8 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
 
   const checkIn = watch("checkIn");
   const checkOut = watch("checkOut");
+  const adultCount = watch("adultCount");
+  const childCount = watch("childCount");
 
   // Calculate number of nights
   let numberOfNights = 1;
@@ -148,7 +153,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
               <span>Booking Summary</span>
             </div>
             <Badge variant="outline" className="text-sm">
-              ₹{pricePerNight.toLocaleString("en-IN")}/night
+              {formatPrice(pricePerNight, "INR")}/night
             </Badge>
           </CardTitle>
         </CardHeader>
@@ -158,13 +163,13 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
           <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2">
               <span className="text-gray-600">
-                ₹{pricePerNight.toLocaleString("en-IN")} × {numberOfNights} night
+                {formatPrice(pricePerNight, "INR")} × {numberOfNights} night
                 {numberOfNights > 1 ? "s" : ""}
               </span>
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-blue-600">
-                ₹{totalPrice.toLocaleString("en-IN")}
+                {formatPrice(totalPrice, "INR")}
               </div>
               <div className="text-xs text-gray-500">Total Price</div>
             </div>
@@ -233,7 +238,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-xs text-gray-600">
                     <User className="h-3 w-3" />
-                    Adults
+                    {adultsLabel(adultCount || 1)}
                   </Label>
                   <Input
                     type="number"
@@ -259,7 +264,7 @@ const GuestInfoForm = ({ hotelId, pricePerNight }: Props) => {
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 text-xs text-gray-600">
                     <Baby className="h-3 w-3" />
-                    Children
+                    {childrenLabel(childCount || 0)}
                   </Label>
                   <Input
                     type="number"

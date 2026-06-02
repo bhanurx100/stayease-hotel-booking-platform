@@ -7,6 +7,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { adultsLabel, childrenLabel } from "../lib/guest-labels";
 
 type SuccessState = {
   hotelName?: string;
@@ -20,6 +22,7 @@ type SuccessState = {
 };
 
 const BookingSuccess = () => {
+  const { formatPrice } = useCurrency();
   const location = useLocation();
   const state = (location.state ?? {}) as SuccessState;
 
@@ -80,9 +83,9 @@ const BookingSuccess = () => {
                   <p className="text-gray-500 text-xs">
                     {nights} night{nights > 1 ? "s" : ""}
                     {(state.adultCount ?? 0) > 0 &&
-                      ` · ${state.adultCount} adult${(state.adultCount ?? 0) > 1 ? "s" : ""}`}
+                      ` · ${adultsLabel(state.adultCount!)}`}
                     {(state.childCount ?? 0) > 0 &&
-                      ` · ${state.childCount} child${(state.childCount ?? 0) > 1 ? "ren" : ""}`}
+                      ` · ${childrenLabel(state.childCount!)}`}
                   </p>
                 </div>
               </div>
@@ -92,7 +95,7 @@ const BookingSuccess = () => {
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4 text-teal-600" />
                 <span className="font-semibold text-gray-900">
-                  ₹{Number(state.totalCost).toLocaleString("en-IN")} total
+                  {formatPrice(Number(state.totalCost), "INR")} total
                 </span>
                 <span className="text-xs text-gray-400">(demo payment)</span>
               </div>

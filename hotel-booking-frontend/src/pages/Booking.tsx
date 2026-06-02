@@ -16,8 +16,10 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Loader2, CreditCard, Calendar, Users, AlertCircle } from "lucide-react";
+import { useCurrency } from "../contexts/CurrencyContext";
 
 const Booking = () => {
+  const { formatPrice } = useCurrency();
   const { stripePromise, isLoggedIn } = useAppContext();
   const search = useSearchContext();
   const { hotelId } = useParams();
@@ -161,7 +163,7 @@ const Booking = () => {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{hotel.starRating} Stars</Badge>
                   <Badge variant="outline">
-                    ₹{hotel.pricePerNight}/night
+                    {formatPrice(hotel.pricePerNight, "INR")}/night
                   </Badge>
                 </div>
               </CardContent>
