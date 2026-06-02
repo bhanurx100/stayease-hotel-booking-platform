@@ -65,7 +65,7 @@ const QUICK_PROMPTS = [
 // ─── Small hotel card for chat panel ─────────────────────────────────────────
 
 const ChatHotelCard = ({ hotel }: { hotel: any }) => {
-  const { format, formatExternal } = useCurrency();
+  const { formatPrice } = useCurrency();
   const isExternal   = hotel.source === "external";
   const detailUrl    = `/detail/${hotel._id}`;
 
@@ -107,10 +107,10 @@ const ChatHotelCard = ({ hotel }: { hotel: any }) => {
           </div>
           {hotel.pricePerNight > 0 ? (
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isExternal ? "text-emerald-700 bg-emerald-50" : "text-primary-600 bg-primary-50"}`}>
-              {isExternal
-                ? formatExternal(hotel.pricePerNight, hotel.currency ?? "INR")
-                : format(hotel.pricePerNight)
-              }/night
+              {formatPrice(
+                hotel.pricePerNight,
+                isExternal ? (hotel.currency ?? "GBP") : "INR"
+              )}/night
             </span>
           ) : (
             <span className="text-xs text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
