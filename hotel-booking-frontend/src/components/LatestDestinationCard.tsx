@@ -18,6 +18,7 @@ import { Link }       from "react-router-dom";
 import { AiFillStar } from "react-icons/ai";
 import { MapPin }     from "lucide-react";
 import { useCurrency } from "../contexts/CurrencyContext";
+import type { CurrencyCode } from "../config/exchange-rates";
 
 interface HotelCardProps {
   hotel: {
@@ -39,7 +40,8 @@ interface HotelCardProps {
 
 const LatestDestinationCard = ({ hotel }: HotelCardProps) => {
   // ── formatINR: always ₹, never converts, never multiplies ────────────────
-  const { formatINR } = useCurrency();
+  const { formatPrice } = useCurrency();
+  const fromCurrency: CurrencyCode = "INR";
 
   const imageUrl = hotel.imageUrls?.[0]
     ?? "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80";
@@ -68,7 +70,7 @@ const LatestDestinationCard = ({ hotel }: HotelCardProps) => {
         {/* Price badge — always ₹ (formatINR), no conversion */}
         {hotel.pricePerNight > 0 && (
           <div className="absolute top-3 left-3 bg-teal-700 text-white text-sm font-bold px-3 py-1 rounded-full shadow">
-            {formatINR(hotel.pricePerNight)}
+            {formatPrice(hotel.pricePerNight, fromCurrency)}
             <span className="font-normal opacity-80">/night</span>
           </div>
         )}
@@ -128,7 +130,7 @@ const LatestDestinationCard = ({ hotel }: HotelCardProps) => {
           {/* Price always ₹ INR */}
           <span className="text-sm font-bold text-teal-700">
             {hotel.pricePerNight > 0
-              ? `${formatINR(hotel.pricePerNight)}/night`
+              ? `${formatPrice(hotel.pricePerNight, fromCurrency)}/night`
               : "Price on request"}
           </span>
         </div>

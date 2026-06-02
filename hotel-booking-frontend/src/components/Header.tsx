@@ -59,6 +59,9 @@ const Header = () => {
 
           {/* ── Right: Mobile nav + Desktop nav ──────────────────────────── */}
           <div className="flex items-center gap-2">
+            <div className="md:hidden">
+              <CurrencySelector />
+            </div>
             {/* Mobile */}
             <div className="md:hidden">
               <MobileNav />

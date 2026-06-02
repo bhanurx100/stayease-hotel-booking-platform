@@ -26,8 +26,11 @@ import {
   UserCircle,
 } from "lucide-react";
 import useAppContext from "../hooks/useAppContext";
+import { useCurrency } from "../contexts/CurrencyContext";
+import { adultsLabel, childrenLabel } from "../lib/guest-labels";
 
 const MyBookings = () => {
+  const { formatPrice } = useCurrency();
   const { isLoggedIn } = useAppContext();
   const { data: hotels } = useQueryWithLoading<HotelWithBookingsType[]>(
     "fetchMyBookings",
@@ -199,7 +202,7 @@ const MyBookings = () => {
             <div className="flex items-center gap-2">
               <DollarSign className="w-5 h-5" />
               <span className="text-blue-100">
-                £{totalSpent.toFixed(2)} Total Spent
+                {formatPrice(totalSpent, "INR")} Total Spent
               </span>
             </div>
           </div>
@@ -238,7 +241,7 @@ const MyBookings = () => {
                       </div>
                       <div className="flex items-center gap-1">
                         <Building className="w-4 h-4" />
-                        <span>£{hotel.pricePerNight}/night</span>
+                        <span>{formatPrice(hotel.pricePerNight, "INR")}/night</span>
                       </div>
                     </div>
                   </div>
@@ -348,16 +351,10 @@ const MyBookings = () => {
                             </div>
                             <div className="text-sm text-gray-600">
                               <div className="mb-1">
-                                <span className="font-medium">
-                                  {booking.adultCount}
-                                </span>{" "}
-                                Adults
+                                {adultsLabel(booking.adultCount)}
                               </div>
                               <div>
-                                <span className="font-medium">
-                                  {booking.childCount}
-                                </span>{" "}
-                                Children
+                                {childrenLabel(booking.childCount)}
                               </div>
                             </div>
                           </div>
@@ -391,14 +388,14 @@ const MyBookings = () => {
                                   Nights
                                 </div>
                                 <div className="text-lg font-bold text-green-600">
-                                  £{totalPrice}
+                                  {formatPrice(totalPrice, "INR")}
                                 </div>
                                 {/* Only show refund if it exists and is greater than 0 */}
                                 {booking.refundAmount !== undefined &&
                                   booking.refundAmount !== null &&
                                   booking.refundAmount > 0 && (
                                     <div className="text-sm text-red-600">
-                                      Refund: £{booking.refundAmount}
+                                      Refund: {formatPrice(booking.refundAmount, "INR")}
                                     </div>
                                   )}
                               </div>

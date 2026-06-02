@@ -54,16 +54,16 @@ const SearchResultsCard = ({ hotel }: Props) => {
   // ── CURRENCY FIX ────────────────────────────────────────────────────────────
   // formatINR      → DB hotels: price already in INR, just prefix ₹, no math
   // formatExternal → External hotels: use the API's own currency field
-  const { formatINR, formatExternal } = useCurrency();
+  const { formatPrice } = useCurrency();
 
   const isExternal = hotel.source === "external";
   const hasPrice   = (hotel.pricePerNight ?? 0) > 0;
   const detailUrl  = `/detail/${hotel._id}`;
 
-  // ── Price display — correct for BOTH sources ──────────────────────────────
-  const formattedPrice = isExternal
-    ? formatExternal(hotel.pricePerNight, hotel.currency ?? "GBP")
-    : formatINR(hotel.pricePerNight);           // ← was format() before (wrong GBP conversion)
+  const formattedPrice = formatPrice(
+    hotel.pricePerNight,
+    isExternal ? (hotel.currency ?? "GBP") : "INR"
+  );
 
   // Populate browser cache so Detail page hydrates without extra API call
   if (isExternal && hotel._id) {

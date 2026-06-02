@@ -572,17 +572,7 @@ const Detail = () => {
 
   console.log("[Detail] hotelId:", hotelId, "isExternal:", isExternal);
 
-  const { formatINR, formatExternal } = useCurrency();
-
-  // ── Price formatter — single consistent helper ─────────────────────────────
-  // DB:       always ₹, no conversion
-  // External: API native currency via formatExternal
-  const formatPrice = useCallback((amount: number, currency?: string): string => {
-    if (!amount || amount <= 0) return "Price on request";
-    return isExternal
-      ? formatExternal(amount, currency ?? h?.currency ?? "GBP")
-      : formatINR(amount);
-  }, [isExternal, formatINR, formatExternal]);
+  const { formatPrice: formatPriceGlobal } = useCurrency();
 
   // ── Image gallery modal state ──────────────────────────────────────────────
   const [modalOpen,  setModalOpen]  = useState(false);
@@ -695,6 +685,9 @@ const Detail = () => {
   }
 
   const h = hotel;
+  const nativeCurrency = isExternal ? String(h.currency ?? "GBP") : "INR";
+  const formatPrice = (amount: number, currency?: string) =>
+    formatPriceGlobal(amount, currency ?? nativeCurrency);
 
   const scrollToBooking = () => {
     document.getElementById("booking-panel")?.scrollIntoView({
@@ -1018,7 +1011,7 @@ const Detail = () => {
                   {Number(h.pricePerNight ?? 0) > 0 ? (
                     <div className="flex items-baseline gap-1">
                       <span className="text-3xl font-bold text-gray-900">
-                        {formatExternal(Number(h.pricePerNight), String(h.currency ?? "GBP"))}
+                        {formatPrice(Number(h.pricePerNight), nativeCurrency)}
                       </span>
                       <span className="text-gray-500 text-sm">/ night</span>
                     </div>
@@ -1065,7 +1058,7 @@ const Detail = () => {
                 <p className="text-sm text-teal-700 font-medium">
                   Starting from{" "}
                   <span className="text-lg font-bold text-teal-800">
-                    {formatINR(Number(h.pricePerNight))}
+                    {formatPrice(Number(h.pricePerNight), nativeCurrency)}
                   </span>
                   {" "}/ night
                 </p>
