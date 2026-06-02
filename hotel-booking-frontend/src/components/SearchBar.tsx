@@ -290,7 +290,7 @@ const SearchBar = () => {
           <div className="flex flex-col sm:flex-row gap-3 sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground whitespace-nowrap">
-                Adults:
+                {adultCount === 1 ? "1 Adult" : `${adultCount} Adults`}:
               </label>
               <Input
                 type="number"
@@ -305,7 +305,7 @@ const SearchBar = () => {
             </div>
             <div className="flex items-center gap-2">
               <label className="text-sm text-muted-foreground whitespace-nowrap">
-                Children:
+                {childCount === 1 ? "1 Child" : `${childCount} Children`}:
               </label>
               <Input
                 type="number"
