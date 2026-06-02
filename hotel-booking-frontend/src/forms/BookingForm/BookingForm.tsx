@@ -24,6 +24,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
+import { useCurrency } from "../../contexts/CurrencyContext";
 
 type Props = {
   currentUser: UserType;
@@ -72,6 +73,7 @@ const BookingFormFields = ({
   const navigate = useNavigate();
 
   const { showToast } = useAppContext();
+  const { formatPrice } = useCurrency();
 
   // Use local state for form fields to prevent losing data
   const [phone, setPhone] = useState<string>("");
@@ -304,7 +306,7 @@ MM/YY: 12/35 CVC: 123`;
               <div className="flex justify-between items-center mb-2">
                 <span className="text-gray-700 font-medium">Total Cost</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  ₹{paymentIntent.totalCost.toLocaleString("en-IN")}
+                  {formatPrice(paymentIntent.totalCost, "INR")}
                 </span>
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-500">
