@@ -1,17 +1,12 @@
 /**
  * hotel-booking-frontend/src/components/Map.tsx
  *
- * Lazy-loaded map component — imported via React.lazy() in Detail.tsx
- * so it never blocks the initial page render.
- *
- * Uses Google Maps Static API (single <img> tag — no JS SDK needed).
- * When VITE_GOOGLE_MAPS_API_KEY is absent, falls back to an OpenStreetMap
- * iframe (no key required, always works).
- *
- * Wrapped with React.memo so it only re-renders when coords/nearby change.
+ * Fixed: safe coordinate validation, proper container height,
+ * handles both DB hotels (coordinates from Google enrichment)
+ * and external hotels (coordinates from aggregatorService).
  */
 
-import React, { memo } from "react";
+import React, { memo, useState, useEffect } from "react";
 import { Navigation, MapPin, Utensils, Camera, Train, ShoppingBag } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -41,6 +36,21 @@ export interface MapProps {
 
 const MAPS_KEY = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
+/**
+ * Validate that lat/lng are real, non-zero numbers.
+ * Guards against null, undefined, 0, NaN, and string "0".
+ */
+function isValidCoord(lat: unknown, lng: unknown): boolean {
+  const la = Number(lat);
+  const lo = Number(lng);
+  return (
+    Number.isFinite(la) && Number.isFinite(lo) &&
+    la >= -90 && la <= 90 &&
+    lo >= -180 && lo <= 180 &&
+    !(la === 0 && lo === 0)
+  );
+}
+
 function staticMapUrl(lat: number, lng: number, zoom = 15): string {
   if (!MAPS_KEY) return "";
   const marker = `markers=color:teal|label:H|${lat},${lng}`;
@@ -52,7 +62,12 @@ function staticMapUrl(lat: number, lng: number, zoom = 15): string {
 }
 
 function openStreetMapUrl(lat: number, lng: number): string {
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${lng - 0.01},${lat - 0.01},${lng + 0.01},${lat + 0.01}&layer=mapnik&marker=${lat},${lng}`;
+  const delta = 0.01;
+  return (
+    `https://www.openstreetmap.org/export/embed.html` +
+    `?bbox=${lng - delta},${lat - delta},${lng + delta},${lat + delta}` +
+    `&layer=mapnik&marker=${lat},${lng}`
+  );
 }
 
 function googleMapsLink(lat: number, lng: number, name: string): string {
@@ -107,9 +122,22 @@ NearbyChip.displayName = "NearbyChip";
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const Map = memo(({ lat, lng, hotelName, address, nearby }: MapProps) => {
-  const mapsLink = googleMapsLink(lat, lng, hotelName);
-  const imgUrl   = staticMapUrl(lat, lng);
-  const osmUrl   = openStreetMapUrl(lat, lng);
+  const [staticMapFailed, setStaticMapFailed] = useState(false);
+
+  useEffect(() => {
+    setStaticMapFailed(false);
+  }, [lat, lng]);
+
+  if (!isValidCoord(lat, lng)) {
+    return null;
+  }
+
+  const safeLat  = Number(lat);
+  const safeLng  = Number(lng);
+  const mapsLink = googleMapsLink(safeLat, safeLng, hotelName);
+  const imgUrl   = staticMapUrl(safeLat, safeLng);
+  const osmUrl   = openStreetMapUrl(safeLat, safeLng);
+  const useStaticMap = Boolean(MAPS_KEY && imgUrl && !staticMapFailed);
 
   const allNearby = [
     ...(nearby?.restaurants ?? []).slice(0, 3),
@@ -137,43 +165,43 @@ const Map = memo(({ lat, lng, hotelName, address, nearby }: MapProps) => {
         </a>
       </div>
 
-      {/* Map image */}
-      {MAPS_KEY && imgUrl ? (
-        /* Google Maps Static — single <img>, no JS SDK */
-        <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="block">
-          <img
-            src={imgUrl}
-            alt={`Map showing ${hotelName}`}
-            className="w-full h-[260px] object-cover hover:opacity-90 transition-opacity"
-            loading="lazy"
-          />
-        </a>
-      ) : (
-        /* OpenStreetMap fallback — no key needed */
-        <div className="relative">
-          <iframe
-            src={osmUrl}
-            title={`Map showing ${hotelName}`}
-            className="w-full h-[260px] border-0"
-            loading="lazy"
-            sandbox="allow-scripts allow-same-origin"
-          />
-          {/* Overlay link to open in Google Maps */}
-          <a
-            href={mapsLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="absolute bottom-3 right-3 bg-white text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-lg shadow hover:bg-teal-50 border border-teal-200 transition-colors"
-          >
-            Open in Google Maps ↗
+      {/* Map — fixed height so it always renders visibly */}
+      <div className="relative w-full min-h-[300px]" style={{ height: "300px" }}>
+        {useStaticMap ? (
+          <a href={mapsLink} target="_blank" rel="noopener noreferrer" className="block h-full min-h-[300px]">
+            <img
+              src={imgUrl}
+              alt={`Map showing ${hotelName}`}
+              className="w-full h-full min-h-[300px] object-cover hover:opacity-90 transition-opacity"
+              loading="lazy"
+              onError={() => setStaticMapFailed(true)}
+            />
           </a>
-        </div>
-      )}
+        ) : (
+          <>
+            <iframe
+              src={osmUrl}
+              title={`Map showing ${hotelName}`}
+              className="absolute inset-0 w-full h-full border-0"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+            />
+            <a
+              href={mapsLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute bottom-3 right-3 z-10 bg-white text-teal-700 text-xs font-semibold px-3 py-1.5 rounded-lg shadow hover:bg-teal-50 border border-teal-200 transition-colors"
+            >
+              Open in Google Maps ↗
+            </a>
+          </>
+        )}
+      </div>
 
       {/* Coordinates pill */}
       <div className="flex items-center gap-1.5 px-6 py-2 border-b border-gray-100 text-xs text-gray-400">
         <MapPin className="w-3.5 h-3.5" />
-        {lat.toFixed(5)}, {lng.toFixed(5)}
+        {safeLat.toFixed(5)}, {safeLng.toFixed(5)}
       </div>
 
       {/* Nearby places */}

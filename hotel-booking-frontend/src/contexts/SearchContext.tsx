@@ -31,14 +31,24 @@ export const SearchContextProvider = ({
   const [destination, setDestination] = useState<string>(
     () => sessionStorage.getItem("destination") || ""
   );
-  const [checkIn, setCheckIn] = useState<Date>(
-    () =>
-      new Date(sessionStorage.getItem("checkIn") || new Date().toISOString())
-  );
-  const [checkOut, setCheckOut] = useState<Date>(
-    () =>
-      new Date(sessionStorage.getItem("checkOut") || new Date().toISOString())
-  );
+  const defaultCheckIn = () => {
+    const stored = sessionStorage.getItem("checkIn");
+    if (stored) return new Date(stored);
+    const d = new Date();
+    d.setHours(14, 0, 0, 0);
+    return d;
+  };
+  const defaultCheckOut = () => {
+    const stored = sessionStorage.getItem("checkOut");
+    if (stored) return new Date(stored);
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(11, 0, 0, 0);
+    return d;
+  };
+
+  const [checkIn, setCheckIn] = useState<Date>(defaultCheckIn);
+  const [checkOut, setCheckOut] = useState<Date>(defaultCheckOut);
   const [adultCount, setAdultCount] = useState<number>(() =>
     parseInt(sessionStorage.getItem("adultCount") || "1")
   );

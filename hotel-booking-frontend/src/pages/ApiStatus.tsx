@@ -219,14 +219,14 @@ const ApiStatus = () => {
                 <span className="text-sm font-medium text-gray-600">
                   API Status
                 </span>
-                {getStatusIcon(healthData?.status || "unknown")}
+                {getStatusIcon(healthData?.status ?? "unknown")}
               </div>
               <span
                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                  healthData?.status || "unknown"
+                  healthData?.status ?? "unknown"
                 )}`}
               >
-                {healthData?.status || "Unknown"}
+                {healthData?.status ?? "Unknown"}
               </span>
             </div>
 
@@ -236,14 +236,14 @@ const ApiStatus = () => {
                 <span className="text-sm font-medium text-gray-600">
                   Database
                 </span>
-                {getStatusIcon(healthData?.database.status || "unknown")}
+                {getStatusIcon(healthData?.database?.status ?? "unknown")}
               </div>
               <span
                 className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(
-                  healthData?.database.status || "unknown"
+                  healthData?.database?.status ?? "unknown"
                 )}`}
               >
-                {healthData?.database.status || "Unknown"}
+                {healthData?.database?.status ?? "Unknown"}
               </span>
             </div>
 
@@ -269,7 +269,7 @@ const ApiStatus = () => {
                 <HardDrive className="w-4 h-4 text-gray-400" />
               </div>
               <span className="text-lg font-semibold text-gray-900">
-                {healthData?.memory.percentage || 0}%
+                {healthData?.memory?.percentage ?? 0}%
               </span>
             </div>
           </div>

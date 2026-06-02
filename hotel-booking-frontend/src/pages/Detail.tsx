@@ -122,6 +122,58 @@ function amenityIcon(name: string): React.ComponentType<any> {
   return CheckCircle;
 }
 
+// ─── Map location resolution (details API + raw MongoDB shapes) ───────────────
+
+interface MapLocation {
+  lat:     number;
+  lng:     number;
+  address: string;
+}
+
+function isValidMapCoord(lat: unknown, lng: unknown): boolean {
+  const la = Number(lat);
+  const lo = Number(lng);
+  return (
+    Number.isFinite(la) && Number.isFinite(lo) &&
+    la >= -90 && la <= 90 &&
+    lo >= -180 && lo <= 180 &&
+    !(la === 0 && lo === 0)
+  );
+}
+
+/** Resolve lat/lng from enriched details, coordinates, or MongoDB location. */
+function resolveMapLocation(hotel: any, extra: any): MapLocation | null {
+  const addressFallback = String(hotel?.address ?? "");
+
+  const candidates: Array<{ lat?: unknown; lng?: unknown; lon?: unknown; longitude?: unknown; latitude?: unknown; address?: unknown } | null | undefined> = [
+    extra?.location,
+    hotel?.coordinates,
+    hotel?.location?.lat != null ? hotel.location : null,
+    hotel?.location?.latitude != null
+      ? {
+          latitude:  hotel.location.latitude,
+          longitude: hotel.location.longitude,
+          address:   typeof hotel.location.address === "string"
+            ? hotel.location.address
+            : addressFallback,
+        }
+      : null,
+  ];
+
+  for (const c of candidates) {
+    if (!c || typeof c !== "object") continue;
+    const lat = (c as any).lat ?? (c as any).latitude;
+    const lng = (c as any).lng ?? (c as any).longitude ?? (c as any).lon;
+    if (!isValidMapCoord(lat, lng)) continue;
+    return {
+      lat:     Number(lat),
+      lng:     Number(lng),
+      address: String((c as any).address ?? addressFallback),
+    };
+  }
+  return null;
+}
+
 // ─── Sub-components — all memo'd to prevent re-renders ────────────────────────
 
 // ── Image Gallery Modal ───────────────────────────────────────────────────────
@@ -333,11 +385,12 @@ RatingBar.displayName = "RatingBar";
 // ── Room card ─────────────────────────────────────────────────────────────────
 
 const RoomCard = memo(({
-  room, formatPrice, isDB,
+  room, formatPrice, isDB, onSelectRoom,
 }: {
   room: any;
   formatPrice: (n: number) => string;
   isDB: boolean;
+  onSelectRoom?: () => void;
 }) => (
   <div className="border border-gray-200 rounded-2xl overflow-hidden hover:border-teal-300 hover:shadow-md transition-all duration-200">
     <div className="p-5">
@@ -409,7 +462,11 @@ const RoomCard = memo(({
 
       {/* CTA */}
       {isDB ? (
-        <button className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold py-2.5 rounded-xl transition-all active:scale-[0.98] text-sm">
+        <button
+          type="button"
+          onClick={onSelectRoom}
+          className="w-full bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-semibold py-2.5 rounded-xl transition-all active:scale-[0.98] text-sm"
+        >
           Select Room
         </button>
       ) : (
@@ -577,9 +634,7 @@ const Detail = () => {
   const rooms:     any[]     = hotel?.rooms ?? extra?.rooms ?? [];
   const pricing:   any       = hotel?.pricing ?? extra?.pricing ?? null;
   const revSum:    any       = hotel?.reviewsSummary ?? extra?.reviewsSummary ?? null;
-  const location:  any       = extra?.location
-    ?? (hotel?.coordinates?.lat ? { lat: hotel.coordinates.lat, lng: hotel.coordinates.lng, address: hotel.address ?? "" } : null)
-    ?? null;
+  const location = resolveMapLocation(hotel, extra);
   const nearby:    any       = extra?.nearby ?? hotel?.nearbyPlaces ?? null;
   const policies:  any       = hotel?.policies ?? extra?.policies ?? {};
   const contact:   any       = hotel?.contact ?? {};
@@ -591,6 +646,18 @@ const Detail = () => {
   const reviewCount   = Number(extra?.rating?.totalReviews ?? hotel?.reviewCount ?? 0);
 
   const groupedAmenities = groupAmenityList(amenities);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV || !hotelId) return;
+    console.log("[Detail map debug]", {
+      hotelId,
+      hotelName:     hotel?.name,
+      location,
+      coordinates:   hotel?.coordinates,
+      extraLocation: extra?.location,
+      mongoLocation: hotel?.location,
+    });
+  }, [hotelId, hotel?.name, location, hotel?.coordinates, extra?.location, hotel?.location]);
 
   // ── Loading ───────────────────────────────────────────────────────────────
   const showLoading = isExternal
@@ -628,6 +695,13 @@ const Detail = () => {
   }
 
   const h = hotel;
+
+  const scrollToBooking = () => {
+    document.getElementById("booking-panel")?.scrollIntoView({
+      behavior: "smooth",
+      block:    "start",
+    });
+  };
 
   return (
     <>
@@ -696,6 +770,7 @@ const Detail = () => {
                       room={room}
                       formatPrice={(n) => formatPrice(n, h.currency)}
                       isDB={isDB}
+                      onSelectRoom={isDB ? scrollToBooking : undefined}
                     />
                   ))}
                 </div>
@@ -812,10 +887,10 @@ const Detail = () => {
             )}
 
             {/* ── MAP (lazy-loaded) ─────────────────────────────────────── */}
-            {location && location.lat !== 0 && (
+            {location && isValidMapCoord(location.lat, location.lng) && (
               <Suspense
                 fallback={
-                  <div className="bg-white rounded-2xl border border-gray-100 h-48 flex items-center justify-center text-gray-400 shadow-sm">
+                  <div className="bg-white rounded-2xl border border-gray-100 h-[300px] flex items-center justify-center text-gray-400 shadow-sm">
                     <div className="text-center">
                       <MapPin className="w-8 h-8 mx-auto mb-2 animate-pulse" />
                       <p className="text-sm">Loading map…</p>
@@ -827,7 +902,7 @@ const Detail = () => {
                   lat={location.lat}
                   lng={location.lng}
                   hotelName={h.name ?? ""}
-                  address={location.address || h.address}
+                  address={location.address || h.address || ""}
                   nearby={{
                     restaurants: nearby?.restaurants ?? [],
                     attractions: nearby?.attractions ?? [],
@@ -925,11 +1000,10 @@ const Detail = () => {
           </div>
 
           {/* ── RIGHT COLUMN ─────────────────────────────────────────────── */}
-          <div className="space-y-4">
+          <div id="booking-panel" className="space-y-4">
 
             {/* Booking widget */}
             {isDB ? (
-              /* DB hotel — GuestInfoForm (Stripe) — UNCHANGED */
               h._id && h.pricePerNight && (
                 <GuestInfoForm
                   pricePerNight={Number(h.pricePerNight)}
