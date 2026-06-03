@@ -48,10 +48,10 @@ import { Link }       from "react-router-dom";
 import { AiFillStar } from "react-icons/ai";
 import { Badge }      from "./ui/badge";
 import {
-  ChevronLeft, ChevronRight, X, Images, MapPin,
+  ChevronRight, MapPin,
   Wifi, Car, Waves, Dumbbell, Sparkles, Utensils,
   Coffee, Plane, ShieldCheck, CheckCircle,
-  Building2, Briefcase, Users, Leaf,
+  Briefcase, Users, Leaf,
 } from "lucide-react";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -71,11 +71,12 @@ export interface HotelHeaderProps {
 // ─── Tab definitions (section IDs must match anchor IDs in Detail.tsx) ────────
 
 const TABS: { label: string; id: string }[] = [
-  { label: "Overview",      id: "section-overview"      },
-  { label: "About",         id: "section-about"         },
-  { label: "Rooms",         id: "section-rooms"         },
-  { label: "Accessibility", id: "section-accessibility" },
-  { label: "Policies",      id: "section-policies"      },
+  { label: "Overview",   id: "section-ai-summary" },
+  { label: "Rooms",      id: "section-rooms"      },
+  { label: "Amenities",  id: "section-amenities"  },
+  { label: "Location",   id: "section-location"   },
+  { label: "Reviews",    id: "section-reviews"    },
+  { label: "Policies",   id: "section-policies"   },
 ];
 
 // ─── Amenity icon resolver ────────────────────────────────────────────────────
@@ -111,274 +112,8 @@ function getAmenityIcon(name: string): React.ComponentType<any> {
   return CheckCircle;
 }
 
-// ─── Fallback image ───────────────────────────────────────────────────────────
-
-const FALLBACK =
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80";
-const FALLBACK_THUMB =
-  "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=300&q=60";
-
-function imgError(e: React.SyntheticEvent<HTMLImageElement>, fb = FALLBACK) {
-  (e.currentTarget as HTMLImageElement).src = fb;
-}
-
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENT 1: Fullscreen Gallery Modal
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface GalleryModalProps {
-  images:     string[];
-  startIndex: number;
-  onClose:    () => void;
-}
-
-const GalleryModal = memo(({ images, startIndex, onClose }: GalleryModalProps) => {
-  const [idx, setIdx] = useState(startIndex);
-  const [loaded, setLoaded] = useState(false);
-  const thumbRef = useRef<HTMLDivElement>(null);
-
-  const total = images.length;
-  const prev  = useCallback(() => { setLoaded(false); setIdx((i) => (i - 1 + total) % total); }, [total]);
-  const next  = useCallback(() => { setLoaded(false); setIdx((i) => (i + 1) % total); }, [total]);
-
-  // Keyboard navigation
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape")      { onClose(); return; }
-      if (e.key === "ArrowLeft")   { prev(); return; }
-      if (e.key === "ArrowRight")  { next(); return; }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onClose, prev, next]);
-
-  // Scroll active thumbnail into view
-  useEffect(() => {
-    const el = thumbRef.current?.querySelector(`[data-idx="${idx}"]`) as HTMLElement | null;
-    el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-  }, [idx]);
-
-  // Touch swipe
-  const touchStart = useRef<number | null>(null);
-  const onTouchStart = (e: React.TouchEvent) => { touchStart.current = e.touches[0].clientX; };
-  const onTouchEnd   = (e: React.TouchEvent) => {
-    if (touchStart.current === null) return;
-    const delta = e.changedTouches[0].clientX - touchStart.current;
-    if (delta > 50)  prev();
-    if (delta < -50) next();
-    touchStart.current = null;
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-[100] bg-black flex flex-col"
-      onClick={onClose}
-    >
-      {/* Top bar */}
-      <div
-        className="flex items-center justify-between px-5 py-3 bg-black/80 flex-shrink-0"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <span className="text-white/70 text-sm font-medium">
-          {idx + 1} <span className="text-white/40">/ {total}</span>
-        </span>
-        <button
-          onClick={onClose}
-          className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
-          aria-label="Close gallery"
-        >
-          <X className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Main image area */}
-      <div
-        className="flex-1 flex items-center justify-center relative overflow-hidden"
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Skeleton */}
-        {!loaded && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-          </div>
-        )}
-
-        <img
-          key={idx}
-          src={images[idx]}
-          alt={`Photo ${idx + 1} of ${total}`}
-          className={`max-h-[calc(100vh-160px)] max-w-[calc(100vw-120px)] object-contain select-none transition-opacity duration-200 ${loaded ? "opacity-100" : "opacity-0"}`}
-          onLoad={() => setLoaded(true)}
-          onError={(e) => { imgError(e); setLoaded(true); }}
-          draggable={false}
-        />
-
-        {/* Nav arrows */}
-        {total > 1 && (
-          <>
-            <button
-              onClick={prev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-all border border-white/10 hover:border-white/30"
-              aria-label="Previous photo"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-            <button
-              onClick={next}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/80 text-white p-3 rounded-full transition-all border border-white/10 hover:border-white/30"
-              aria-label="Next photo"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Thumbnail strip */}
-      <div
-        ref={thumbRef}
-        className="flex-shrink-0 bg-black/90 px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide"
-        onClick={(e) => e.stopPropagation()}
-        style={{ scrollbarWidth: "none" }}
-      >
-        {images.map((url, i) => (
-          <button
-            key={i}
-            data-idx={i}
-            onClick={() => { setLoaded(false); setIdx(i); }}
-            className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-              i === idx
-                ? "border-white opacity-100 scale-105"
-                : "border-transparent opacity-40 hover:opacity-70 hover:border-white/40"
-            }`}
-          >
-            <img
-              src={url}
-              alt={`Thumbnail ${i + 1}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-              onError={(e) => imgError(e, FALLBACK_THUMB)}
-            />
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-});
-GalleryModal.displayName = "GalleryModal";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENT 2: Image Hero Grid
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface HeroGridProps {
-  images:  string[];
-  onOpen:  (i: number) => void;
-  name:    string;
-}
-
-const HeroGrid = memo(({ images, onOpen, name }: HeroGridProps) => {
-  if (!images.length) {
-    return (
-      <div className="w-full h-[420px] bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center rounded-b-2xl">
-        <div className="text-center text-gray-400">
-          <Building2 className="w-14 h-14 mx-auto mb-3" />
-          <p className="text-sm font-medium">No photos available</p>
-        </div>
-      </div>
-    );
-  }
-
-  const [hero, ...rest] = images;
-  const grid = rest.slice(0, 4);   // up to 4 thumbs alongside the hero
-
-  return (
-    <div className="relative w-full overflow-hidden rounded-b-2xl">
-
-      {/* ── 5-panel grid (1 hero + up to 4 thumbs) ──────────────────────── */}
-      <div
-        className={`grid gap-1.5 ${
-          grid.length === 0 ? "grid-cols-1" :
-          grid.length <= 2  ? "grid-cols-3" :
-                              "grid-cols-4"
-        }`}
-        style={{ height: grid.length > 0 ? 460 : 420 }}
-      >
-        {/* Hero panel — always col-span-2 when there are side thumbs */}
-        <div
-          className={`relative overflow-hidden cursor-pointer group bg-gray-200
-            ${grid.length > 0 ? "col-span-2 row-span-2" : "col-span-1"}`}
-          onClick={() => onOpen(0)}
-        >
-          <img
-            src={hero}
-            alt={`${name} — main photo`}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-            loading="eager"
-            onError={(e) => imgError(e)}
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
-        </div>
-
-        {/* Side thumbs */}
-        {grid.map((url, i) => {
-          const isLast       = i === grid.length - 1;
-          const hiddenCount  = images.length - 5;
-          const showOverlay  = isLast && hiddenCount > 0;
-
-          return (
-            <div
-              key={i}
-              className="relative overflow-hidden cursor-pointer group bg-gray-200"
-              onClick={() => onOpen(i + 1)}
-            >
-              <img
-                src={url}
-                alt={`${name} — photo ${i + 2}`}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-                loading="lazy"
-                onError={(e) => imgError(e, FALLBACK_THUMB)}
-              />
-              {showOverlay ? (
-                /* "View all photos" overlay on the last visible thumb */
-                <div className="absolute inset-0 bg-black/55 flex flex-col items-center justify-center text-white gap-1">
-                  <Images className="w-6 h-6 opacity-80" />
-                  <span className="text-xl font-bold">+{hiddenCount}</span>
-                  <span className="text-xs opacity-80 tracking-wide">more photos</span>
-                </div>
-              ) : (
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* ── View all photos button (bottom-right) ────────────────────────── */}
-      <button
-        onClick={() => onOpen(0)}
-        className="
-          absolute bottom-4 right-4
-          bg-white/95 hover:bg-white
-          text-gray-800 text-sm font-semibold
-          px-4 py-2 rounded-xl shadow-lg
-          flex items-center gap-2
-          border border-gray-200
-          transition-all hover:shadow-xl hover:scale-105 active:scale-100
-        "
-      >
-        <Images className="w-4 h-4" />
-        View all {images.length} photos
-      </button>
-    </div>
-  );
-});
-HeroGrid.displayName = "HeroGrid";
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENT 3: Sticky Tab Bar
+// SUB-COMPONENT 1: Sticky Tab Bar
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface StickyTabsProps {
@@ -518,7 +253,7 @@ HighlightsBar.displayName = "HighlightsBar";
  */
 const HotelHeader = ({
   hotel,
-  images,
+  images: _images,
   amenities,
   overallRating,
   ratingWord,
@@ -528,8 +263,6 @@ const HotelHeader = ({
   onTabChange,
 }: HotelHeaderProps) => {
 
-  const [modalOpen,  setModalOpen]  = useState(false);
-  const [modalStart, setModalStart] = useState(0);
   const [activeTab,  setActiveTab]  = useState(TABS[0].id);
   const [tabsSticky, setTabsSticky] = useState(false);
 
@@ -548,11 +281,6 @@ const HotelHeader = ({
     return () => observer.disconnect();
   }, []);
 
-  const openModal = useCallback((i: number) => {
-    setModalStart(i);
-    setModalOpen(true);
-  }, []);
-
   const handleTabChange = useCallback((id: string) => {
     setActiveTab(id);
     const el = document.getElementById(id);
@@ -568,15 +296,6 @@ const HotelHeader = ({
 
   return (
     <>
-      {/* ── Fullscreen modal — only mounted when open ──────────────────── */}
-      {modalOpen && images.length > 0 && (
-        <GalleryModal
-          images={images}
-          startIndex={modalStart}
-          onClose={() => setModalOpen(false)}
-        />
-      )}
-
       {/* ── Breadcrumb ─────────────────────────────────────────────────── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2">
         <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -645,16 +364,10 @@ const HotelHeader = ({
         </div>
       </div>
 
-      {/* ── Hero image grid ─────────────────────────────────────────────── */}
-      <div className="max-w-6xl mx-auto px-0 sm:px-4 lg:px-8">
-        <HeroGrid images={images} onOpen={openModal} name={h.name ?? "Hotel"} />
-      </div>
-
-      {/* ── Sentinel: becomes invisible when image grid scrolls away ─────── */}
-      {/* This is what the IntersectionObserver watches to trigger sticky mode */}
+      {/* ── Sentinel for sticky tabs ─────────────────────────────────────── */}
       <div ref={sentinelRef} className="h-px w-full" aria-hidden />
 
-      {/* ── Tab bar — sticky when image grid is scrolled past ────────────── */}
+      {/* ── Tab bar — sticky after scroll ───────────────────────────────── */}
       <div
         className={`
           z-30 w-full transition-shadow duration-200
