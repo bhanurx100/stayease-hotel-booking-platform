@@ -44,7 +44,7 @@ import {
   getHotelDetails,
 } from "../services/externalHotelService";
 import {
-  getEnrichedHotelDetails,
+  enrichHotelData,
   enrichDBHotel,
 } from "../services/aggregatorService";
 
@@ -197,15 +197,15 @@ router.get(
         // externalHotelService, then pass it to the aggregator for enrichment.
         // This avoids a double RapidAPI call when cache is warm.
         const basic = await getHotelDetails(rawId).catch(() => null);
-        const enriched = await getEnrichedHotelDetails(
-          rawId,
-          basic?.name,
-          basic?.city
-        );
-        if (!enriched) {
+        if (!basic) {
           return res.status(404).json({ message: "Hotel details not found." });
         }
-        return res.status(200).json(enriched);
+        const enriched = await enrichHotelData(basic);
+        const rooms = enriched.extra?.rooms ?? [];
+        return res.status(200).json({
+          ...enriched,
+          rooms,
+        });
       }
 
       // ── DB hotel ────────────────────────────────────────────────────────────

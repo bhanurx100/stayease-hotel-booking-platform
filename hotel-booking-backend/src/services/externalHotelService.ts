@@ -211,6 +211,13 @@ export interface ExternalHotel {
   source:         "external";
   bookingHotelId: number;
   bookingUrl:     string;
+  /** Raw Booking.com /hotels/data rooms map — used by room extractors */
+  rooms?:          Record<string, any>;
+  checkin?:        { from?: string; until?: string };
+  checkout?:       { from?: string; until?: string };
+  price_breakdown?: {
+    gross_price?: { value: number; currency?: string };
+  };
 }
 
 // ─── Currency helpers ─────────────────────────────────────────────────────────
@@ -716,11 +723,8 @@ export async function getHotelDetails(rawId: string): Promise<ExternalHotel | nu
 
   // ── Images ────────────────────────────────────────────────────────────────
   const imageUrls = photosRaw
-    .slice(0, 10)
     .map((p) => forceHttps(p.url_max) ?? forceHttps(p.url_1440) ?? null)
     .filter((u): u is string => u !== null);
-  if (imageUrls.length === 0)
-    imageUrls.push("https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80");
 
   // ── Facilities ────────────────────────────────────────────────────────────
   const facilities = normaliseFacilities(
@@ -785,5 +789,9 @@ export async function getHotelDetails(rawId: string): Promise<ExternalHotel | nu
     source:         "external",
     bookingHotelId: hotelId,
     bookingUrl:     bookingUrlFromId(hotelId),
+    rooms:          hotelData.rooms,
+    checkin:        hotelData.checkin,
+    checkout:       hotelData.checkout,
+    price_breakdown: hotelData.price_breakdown,
   };
 }

@@ -56,9 +56,11 @@
 
 /** A single room type extracted from Booking.com API data */
 export interface ExtractedRoom {
+  id?:                string;
   type:               string;    // e.g. "Standard Double Room"
   maxGuests:          number;
   beds:               string;    // e.g. "1 double bed" | "2 twin beds"
+  size:               string;
   price:              number;    // per night, EXACT from API — never modified
   originalPrice:      number;    // before discount if available, else same as price
   discountPercent:    number;    // 0 if no discount data
@@ -66,6 +68,8 @@ export interface ExtractedRoom {
   amenities:          string[];  // room-level amenities
   meals:              string[];  // e.g. ["Breakfast included"] or []
   cancellationPolicy: string;
+  imageUrl:           string;
+  available:          boolean;
 }
 
 /** Structured price breakdown — values EXACT from API */
@@ -137,6 +141,29 @@ function arr<T>(v: unknown): T[] {
   return Array.isArray(v) ? v : [];
 }
 
+function extractRoomImageUrl(room: Record<string, any>): string {
+  const photos = arr<any>(room.photos ?? room.room_photos ?? room.images ?? room.gallery);
+  for (const p of photos) {
+    const url = str(
+      typeof p === "string" ? p : (p?.url_max ?? p?.url_1440 ?? p?.url ?? p?.link ?? "")
+    );
+    if (url.startsWith("http")) return url.startsWith("http://") ? url.replace("http://", "https://") : url;
+  }
+  const direct = [
+    room.main_photo_url,
+    room.main_photo,
+    room.photo_url,
+    room.thumbnail,
+    room.image,
+    room.image_url,
+  ];
+  for (const v of direct) {
+    const s = str(v);
+    if (s.startsWith("http")) return s.startsWith("http://") ? s.replace("http://", "https://") : s;
+  }
+  return "";
+}
+
 // ─── extractBookingDetails ─────────────────────────────────────────────────────
 
 /**
@@ -196,12 +223,13 @@ export function extractBookingDetails(raw: any): BookingExtract {
 
   // Path A: /hotels/data — rich room map
   const roomsMap: Record<string, any> = raw?.rooms ?? {};
-  const roomEntries = Object.values(roomsMap).filter(
-    (r): r is Record<string, any> => typeof r === "object" && r !== null
+  const roomEntries = Object.entries(roomsMap).filter(
+    (entry): entry is [string, Record<string, any>] =>
+      typeof entry[1] === "object" && entry[1] !== null
   );
 
   if (roomEntries.length > 0) {
-    for (const room of roomEntries.slice(0, 5)) {
+    for (const [roomId, room] of roomEntries) {
       // Bed info — Booking returns bed_configurations as an array of options
       const bedConfigs: any[] = arr(room.bed_configurations);
       const beds = bedConfigs.length > 0
@@ -249,10 +277,17 @@ export function extractBookingDetails(raw: any): BookingExtract {
         currency
       );
 
+      const sizeRaw = str(room.room_surface_in_m2 ?? room.room_size ?? room.size ?? "");
+      const size = sizeRaw
+        ? (/m²|sq/i.test(sizeRaw) ? sizeRaw : `${sizeRaw} m²`)
+        : "—";
+
       rooms.push({
+        id:                 str(roomId || room.room_id, `booking-room-${rooms.length}`),
         type:               str(room.room_name ?? room.name, "Standard Room"),
         maxGuests:          Math.max(1, num(room.max_persons ?? room.max_occupancy, maxGuests)),
         beds,
+        size,
         price:              roomPrice,
         originalPrice:      roomPrice,   // Booking room-level data rarely includes strikethrough
         discountPercent:    0,
@@ -260,6 +295,8 @@ export function extractBookingDetails(raw: any): BookingExtract {
         amenities:          roomFacilities.filter((f) => !/(breakfast|dinner|lunch|meal)/i.test(f)),
         meals,
         cancellationPolicy: roomCancel,
+        imageUrl:           extractRoomImageUrl(room),
+        available:          room.is_disabled !== true && room.available !== false,
       });
     }
   }
@@ -278,6 +315,7 @@ export function extractBookingDetails(raw: any): BookingExtract {
         type:               "Standard Room",
         maxGuests:          Math.min(maxGuests, 2),
         beds:               "1 Double Bed",
+        size:               "—",
         price:              pricePerNight,
         originalPrice:      pricePerNight,
         discountPercent:    0,
@@ -285,12 +323,14 @@ export function extractBookingDetails(raw: any): BookingExtract {
         amenities:          ["Free WiFi", "Private Bathroom", "Air Conditioning"],
         meals:              standardMeals,
         cancellationPolicy: cancelPolicy,
+        imageUrl:           "",
+        available:          true,
       },
       {
         type:               "Deluxe Room",
         maxGuests:          Math.min(maxGuests, 2),
         beds:               "1 King Bed",
-        // Deluxe: 1.3× standard — price still derived from Booking data, not invented
+        size:               "—",
         price:              Math.round(pricePerNight * 1.3),
         originalPrice:      Math.round(pricePerNight * 1.5),
         discountPercent:    13,
@@ -298,6 +338,8 @@ export function extractBookingDetails(raw: any): BookingExtract {
         amenities:          ["Free WiFi", "Private Bathroom", "Air Conditioning", "Mini Bar", "City View"],
         meals:              premiumMeals,
         cancellationPolicy: cancelPolicy,
+        imageUrl:           "",
+        available:          true,
       }
     );
   }
