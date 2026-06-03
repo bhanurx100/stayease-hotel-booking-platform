@@ -28,14 +28,17 @@ import axios from "axios";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ExpediaRoom {
-  name:        string;
-  maxOccupancy: number;
-  beds:        string;
-  rateAmount:  number;
-  currency:    string;
-  amenities:   string[];
-  refundable:  boolean;
+  id:                string;
+  name:              string;
+  maxOccupancy:      number;
+  beds:              string;
+  rateAmount:        number;
+  currency:          string;
+  amenities:         string[];
+  refundable:        boolean;
   breakfastIncluded: boolean;
+  imageUrl:          string;
+  size:              string;
 }
 
 export interface ExpediaHotelData {
@@ -183,8 +186,7 @@ function normalizeImages(details: any): string[] {
 
   return rawImages
     .map(extractImageUrl)
-    .filter((url): url is string => !!url && url.startsWith("https://"))
-    .slice(0, 15);
+    .filter((url): url is string => !!url && url.startsWith("https://"));
 }
 
 function normalizeAmenities(details: any): string[] {
@@ -224,34 +226,216 @@ function normalizeDescription(details: any): string {
   return typeof desc === "string" ? desc.trim() : "";
 }
 
+function asArray(value: unknown): any[] {
+  if (Array.isArray(value)) return value;
+  if (value && typeof value === "object") return Object.values(value as Record<string, unknown>);
+  return [];
+}
+
+function urlFromMediaItem(item: unknown): string {
+  if (typeof item === "string") return item.startsWith("http") ? forceHttps(item) : "";
+  if (!item || typeof item !== "object") return "";
+  const o = item as Record<string, unknown>;
+  const raw =
+    o.url ?? o.imageUrl ??
+    (o.image as { url?: string } | undefined)?.url ??
+    (o.link as { href?: string } | undefined)?.href ??
+    (o.thumb as { url?: string } | undefined)?.url ??
+    "";
+  return typeof raw === "string" && raw.startsWith("http") ? forceHttps(raw) : "";
+}
+
+/** Room-specific photos only — never property hero / gallery fallbacks. */
+function extractExpediaRoomImage(room: any): string {
+  const lists = [
+    room.photos,
+    room.images,
+    room.gallery,
+    room.roomPhotos,
+    room.mediaItems,
+  ];
+  for (const list of lists) {
+    for (const item of asArray(list)) {
+      const url = urlFromMediaItem(item);
+      if (url) return url;
+    }
+  }
+  for (const scalar of [room.thumbnail, room.heroImage, room.image]) {
+    const url = urlFromMediaItem(scalar);
+    if (url) return url;
+  }
+  return "";
+}
+
+function amenityStrings(raw: unknown): string[] {
+  return asArray(raw)
+    .map((a) => (typeof a === "string" ? a : (a as { text?: string })?.text ?? ""))
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function mealStrings(raw: unknown): string[] {
+  return asArray(raw)
+    .map((m) => (typeof m === "string" ? m : (m as { text?: string })?.text ?? ""))
+    .filter(Boolean);
+}
+
+function hasBreakfast(room: any, amenities: string[], meals: string[]): boolean {
+  if (room.breakfastIncluded === true) return true;
+  const freebies = asArray(room.freebies);
+  if (freebies.some((f) => String(f).toLowerCase().includes("breakfast"))) return true;
+  return [...amenities, ...meals].some((t) => /breakfast/i.test(t));
+}
+
+function buildVariantLabel(unitName: string, rate: any): string {
+  const base = cleanString(
+    unitName || rate?.name || rate?.description || rate?.roomName || ""
+  ) || "Room";
+  const suffixParts: string[] = [];
+
+  const view = cleanString(rate?.view ?? rate?.viewType ?? rate?.roomView);
+  if (view && !base.toLowerCase().includes(view.toLowerCase())) suffixParts.push(view);
+
+  const bed =
+    cleanString(rate?.bedding) ||
+    asArray(rate?.bedOptions)
+      .map((b) => cleanString((b as { description?: string })?.description))
+      .filter(Boolean)
+      .join(", ");
+  if (bed && !base.toLowerCase().includes(bed.toLowerCase().slice(0, 12))) suffixParts.push(bed);
+
+  const board = cleanString(rate?.mealPlan ?? rate?.boardName ?? rate?.boardType);
+  if (board && !/nomeal/i.test(board) && !base.toLowerCase().includes(board.toLowerCase())) {
+    suffixParts.push(board);
+  }
+
+  const cancel = rate?.cancellationPolicy;
+  if (cancel?.isRefundable === true && !/refund/i.test(base)) suffixParts.push("Refundable");
+  else if (cancel?.isRefundable === false && !/non-refund/i.test(base)) suffixParts.push("Non-refundable");
+
+  if (!suffixParts.length) return base;
+  return `${base} — ${suffixParts.join(" · ")}`;
+}
+
+function mapRawExpediaRoom(raw: any, currency: string, index: number): ExpediaRoom {
+  const rate =
+    raw.price?.lead?.amount ??
+    raw.price?.display?.amount ??
+    raw.rateAmount ??
+    raw.totalPrice?.amount ??
+    raw.nightlyPrice ??
+    0;
+  const roomCurrency =
+    raw.price?.lead?.currencyInfo?.code ??
+    raw.price?.display?.currencyInfo?.code ??
+    raw.currency ??
+    currency;
+  const amenities = amenityStrings(raw.amenities ?? raw.freebies ?? raw.features);
+  const meals = mealStrings(raw.meals ?? raw.mealPlans);
+  const beds =
+    cleanString(raw.beds) ||
+    asArray(raw.bedTypes)
+      .map((b) => cleanString((b as { description?: string })?.description))
+      .filter(Boolean)
+      .join(" + ") ||
+    "1 Queen Bed";
+  const refundable = !!(
+    raw.cancellationPolicy?.isRefundable ??
+    raw.refundable ??
+    raw.isRefundable
+  );
+  const name =
+    cleanString(raw.name ?? raw.description ?? raw.roomName ?? raw._variantLabel) ||
+    "Standard Room";
+  const id =
+    cleanString(
+      raw.id ?? raw.roomId ?? raw.unitId ?? raw.ratePlanId ?? raw.offerId ?? ""
+    ) || `expedia-variant-${index}-${slugKey(name)}`;
+
+  return {
+    id,
+    name,
+    maxOccupancy: Math.max(1, Number(raw.maxOccupancy ?? raw.occupants ?? raw.maxGuests ?? 2)),
+    beds,
+    rateAmount:   Math.round(Number(rate) || 0),
+    currency:     cleanString(roomCurrency) || currency,
+    amenities,
+    refundable,
+    breakfastIncluded: hasBreakfast(raw, amenities, meals),
+    imageUrl:     extractExpediaRoomImage(raw),
+    size:         cleanString(raw.area ?? raw.roomSize ?? raw.size),
+  };
+}
+
+function slugKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40);
+}
+
+/** Collect every bookable room variant from all known Expedia detail response shapes. */
+function collectExpediaRoomCandidates(details: any): any[] {
+  const out: any[] = [];
+  const seen = new Set<string>();
+
+  const push = (item: any, key: string): void => {
+    if (!item || typeof item !== "object") return;
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push(item);
+  };
+
+  for (const list of [
+    details?.rooms,
+    details?.offerSummary?.rooms,
+    details?.data?.rooms,
+    details?.data?.propertyInfo?.rooms,
+    details?.propertyRooms,
+  ]) {
+    for (const [i, r] of asArray(list).entries()) {
+      push(r, `room-${i}-${r?.id ?? r?.name ?? i}`);
+    }
+  }
+
+  const unitSources = [
+    details?.offerSummary?.units,
+    details?.units,
+    details?.data?.offerSummary?.units,
+    details?.categorizedUnits,
+  ];
+  for (const units of unitSources) {
+    for (const [ui, unit] of asArray(units).entries()) {
+      const unitName = cleanString(unit?.name ?? unit?.description ?? unit?.roomName);
+      const rates = asArray(
+        unit?.rates ?? unit?.ratePlans ?? unit?.offers ?? unit?.availableOffers
+      );
+      if (rates.length === 0) {
+        push(
+          { ...unit, name: unitName || unit?.name, _variantLabel: unitName },
+          `unit-${ui}-${unit?.id ?? unitName}`
+        );
+        continue;
+      }
+      for (const [ri, rate] of rates.entries()) {
+        const label = buildVariantLabel(unitName, rate);
+        push(
+          {
+            ...unit,
+            ...rate,
+            name: label,
+            _variantLabel: label,
+            _unitName: unitName,
+          },
+          `unit-${ui}-rate-${ri}-${rate?.id ?? label}`
+        );
+      }
+    }
+  }
+
+  return out;
+}
+
 function normalizeRooms(details: any, currency: string): ExpediaRoom[] {
-  const rawRooms: any[] =
-    details?.rooms               ??
-    details?.offerSummary?.rooms ??
-    details?.data?.rooms         ??
-    [];
-
-  if (!Array.isArray(rawRooms)) return [];
-
-  return rawRooms.slice(0, 5).map((r: any): ExpediaRoom => {
-    const rate = r.price?.lead?.amount ?? r.rateAmount ?? r.totalPrice?.amount ?? 0;
-    const roomCurrency = r.price?.lead?.currencyInfo?.code ?? currency;
-
-    return {
-      name:         r.name ?? r.description ?? "Standard Room",
-      maxOccupancy: r.maxOccupancy ?? r.occupants ?? 2,
-      beds:         r.beds ?? r.bedTypes?.[0]?.description ?? "1 Queen Bed",
-      rateAmount:   Math.round(Number(rate)),
-      currency:     roomCurrency,
-      amenities:    (r.amenities ?? r.freebies ?? [])
-                      .map((a: any) => (typeof a === "string" ? a : a?.text ?? ""))
-                      .filter(Boolean),
-      refundable:       !!(r.cancellationPolicy?.isRefundable ?? r.refundable ?? false),
-      breakfastIncluded: !!(r.freebies?.includes?.("Free breakfast") ??
-                            r.meals?.some?.((m: any) => (typeof m === "string" ? m : m?.text ?? "")
-                              .toLowerCase().includes("breakfast")) ?? false),
-    };
-  });
+  const candidates = collectExpediaRoomCandidates(details);
+  return candidates.map((r, i) => mapRawExpediaRoom(r, currency, i));
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -332,7 +516,7 @@ export async function getExpediaData(
  *     checkIn:   string              — e.g. "3:00 PM" or ""
  *     checkOut:  string              — e.g. "11:00 AM" or ""
  *   }
- *   rooms: NormalizedRoom[]          — deduped by name, sorted by price asc
+ *   rooms: NormalizedRoom[]          — all variants, sorted by price asc
  * }
  *
  * Rules:
@@ -343,9 +527,11 @@ export async function getExpediaData(
  */
 
 export interface NormalizedRoom {
+  id:                 string;
   name:               string;
   maxGuests:          number;
   beds:               string;
+  size:               string;
   pricePerNight:      number;
   originalPrice:      number;
   discountPercent:    number;
@@ -355,6 +541,7 @@ export interface NormalizedRoom {
   cancellationPolicy: string;
   refundable:         boolean;
   available:          boolean;
+  imageUrl:           string;
 }
 
 export interface NormalizedExpedia {
@@ -389,8 +576,7 @@ export function normalizeExpedia(data: ExpediaHotelData | null | undefined): Nor
       if (seenImages.has(url)) return false;
       seenImages.add(url);
       return true;
-    })
-    .slice(0, 15);
+    });
 
   // ── Description ───────────────────────────────────────────────────────────
   // Trim, collapse multiple whitespace, ensure string
@@ -420,11 +606,11 @@ export function normalizeExpedia(data: ExpediaHotelData | null | undefined): Nor
   const checkOut = sanitizePolicyTime(rawPolicies?.checkOut ?? rawPolicies?.checkoutTime ?? "");
 
   // ── Rooms ─────────────────────────────────────────────────────────────────
-  // Deduplicate by room name, normalise all fields, sort by pricePerNight asc
-  const seenRoomNames = new Set<string>();
+  // Keep every distinct variant (name + price + beds + refundability)
+  const seenVariants = new Set<string>();
   const rooms: NormalizedRoom[] = (Array.isArray(data.rooms) ? data.rooms : [])
     .filter((r): r is ExpediaRoom => !!r && typeof r === "object")
-    .map((r): NormalizedRoom => {
+    .map((r, index): NormalizedRoom => {
       // Dedupe room amenities
       const seenRA = new Set<string>();
       const roomAmenities = (Array.isArray(r.amenities) ? r.amenities : [])
@@ -445,6 +631,7 @@ export function normalizeExpedia(data: ExpediaHotelData | null | undefined): Nor
       if (r.breakfastIncluded) meals.push("Breakfast included");
 
       return {
+        id:                 cleanString(r.id) || `expedia-${index}-${slugKey(cleanString(r.name))}`,
         name:               cleanString(r.name) || "Standard Room",
         maxGuests:          Math.max(1, Math.round(Number(r.maxOccupancy) || 2)),
         beds:               cleanString(r.beds) || "1 Queen Bed",
@@ -459,11 +646,14 @@ export function normalizeExpedia(data: ExpediaHotelData | null | undefined): Nor
           : "Non-refundable — payment collected now",
         refundable: !!r.refundable,
         available:  true,
+        imageUrl:   cleanString(r.imageUrl) || "",
+        size:       cleanString(r.size) || "—",
       };
     })
     .filter((r) => {
-      if (seenRoomNames.has(r.name.toLowerCase())) return false;
-      seenRoomNames.add(r.name.toLowerCase());
+      const key = `${r.id}|${r.name}|${r.pricePerNight}|${r.beds}|${r.refundable}`;
+      if (seenVariants.has(key)) return false;
+      seenVariants.add(key);
       return true;
     })
     .sort((a, b) => a.pricePerNight - b.pricePerNight);
