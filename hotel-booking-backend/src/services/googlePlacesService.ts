@@ -175,7 +175,7 @@ export async function getPlaceDetails(placeId: string): Promise<GooglePlaceDetai
   }
 
   const r = data.result;
-  const photos: GooglePhoto[] = (r.photos ?? []).slice(0, 15).map((p: any) => ({
+  const photos: GooglePhoto[] = (r.photos ?? []).map((p: any) => ({
     url:         buildPhotoUrl(p.photo_reference),
     width:       p.width,
     height:      p.height,
