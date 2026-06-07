@@ -30,61 +30,8 @@ import {
   BookingType,
 } from "../../shared/types";
 import { BookingFormData } from "./forms/BookingForm/BookingForm";
-import { queryClient }     from "./main";
 
 export { getApiBaseUrl };
-
-// ─── URL builder ──────────────────────────────────────────────────────────────
-
-/**
- * Build a full API URL.
- * In dev:  http://localhost:5000/api/auth/google-login
- * In prod: /api/auth/google-login (same origin)
- *
- * This ensures raw fetch() calls reach the Express backend, not Vite's dev server.
- */
-function apiUrl(path: string): string {
-  const base = getApiBaseUrl();
-  // base may be "" (production, same origin) or "http://localhost:5000" (dev)
-  // Remove trailing slash from base, ensure path starts with /
-  const cleanBase = (base ?? "").replace(/\/$/, "");
-  const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${cleanBase}${cleanPath}`;
-}
-
-// ─── Safe JSON helper ─────────────────────────────────────────────────────────
-
-/**
- * Parse a fetch Response as JSON safely.
- * If the server returns HTML (nginx error, proxy miss, etc.) instead of JSON,
- * this returns { message: "..." } instead of crashing with "Unexpected token <".
- */
-async function safeJson(res: Response): Promise<any> {
-  const text = await res.text();
-  if (!text || text.trim() === "") return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    console.error(
-      `[api-client] Non-JSON response from ${res.url} (${res.status}):`,
-      text.slice(0, 300)
-    );
-    return {
-      message: `Server error (${res.status}). ${
-        text.startsWith("<") ? "Got HTML — check API proxy/baseURL config." : text.slice(0, 100)
-      }`,
-    };
-  }
-}
-
-function extractError(res: Response, data: any): string {
-  return (
-    data?.message  ||
-    data?.error    ||
-    res.statusText ||
-    `Request failed with status ${res.status}`
-  );
-}
 
 // ─── User ─────────────────────────────────────────────────────────────────────
 
@@ -93,131 +40,13 @@ export const fetchCurrentUser = async (): Promise<UserType> => {
   return response.data;
 };
 
-// ─── Auth: Google Login ───────────────────────────────────────────────────────
-
-export const googleLogin = async (credential: string): Promise<any> => {
-  // ── BUG FIX: was fetch("/api/auth/google-login") — relative URL hits Vite,
-  //    not Express. Now uses apiUrl() to build the full backend URL. ──────────
-  console.log("[googleLogin] Sending credential to:", apiUrl("/api/auth/google-login"));
-
-  const res = await fetch(apiUrl("/api/auth/google-login"), {
-    method:      "POST",
-    headers:     { "Content-Type": "application/json" },
-    credentials: "include",
-    body:        JSON.stringify({ credential }),
-  });
-
-  console.log("[googleLogin] Response status:", res.status);
-
-  const data = await safeJson(res);
-  console.log("[googleLogin] Response data:", data);
-
-  if (!res.ok) {
-    throw new Error(extractError(res, data));
-  }
-
-  if (data?.token) {
-    localStorage.setItem("auth_token", data.token);
-    localStorage.setItem("session_id",  data.token);
-  }
-
-  queryClient.invalidateQueries("validateToken");
-  return data;
-};
-
-// ─── Auth: Register ───────────────────────────────────────────────────────────
-
-type RegisterPayload = {
-  firstName: string;
-  lastName:  string;
-  email:     string;
-  password:  string;
-};
-
-export const register = async (payload: RegisterPayload): Promise<any> => {
-  console.log("[register] Sending to /api/auth/register:", payload.email);
-  try {
-    const response = await axiosInstance.post("/api/auth/register", payload);
-    const data = response.data;
-    console.log("[register] Success:", data?.email);
-
-    if (data?.token) {
-      localStorage.setItem("auth_token", data.token);
-      localStorage.setItem("session_id",  data.token);
-    }
-
-    queryClient.invalidateQueries("validateToken");
-    return data;
-  } catch (err: any) {
-    const msg =
-      err?.response?.data?.message ||
-      err?.response?.data?.error   ||
-      err?.message                  ||
-      "Registration failed. Please try again.";
-    console.error("[register] Error:", msg);
-    throw new Error(msg);
-  }
-};
-
-// ─── Auth: Sign In ────────────────────────────────────────────────────────────
-
-type SignInPayload = { email: string; password: string };
-
-export const signIn = async (payload: SignInPayload): Promise<any> => {
-  console.log("[signIn] Sending to /api/auth/login:", payload.email);
-  try {
-    const response = await axiosInstance.post("/api/auth/login", payload);
-    const data = response.data;
-    console.log("[signIn] Success:", data?.email, "role:", data?.role);
-
-    if (data?.token) {
-      localStorage.setItem("session_id",  data.token);
-      localStorage.setItem("auth_token",  data.token);
-    }
-    if (data?.userId)    localStorage.setItem("user_id",    data.userId);
-    if (data?.email)     localStorage.setItem("user_email", data.email);
-
-    const name = [data?.firstName, data?.lastName].filter(Boolean).join(" ") || data?.email;
-    if (name) localStorage.setItem("user_name", name);
-
-    // Invalidate — do NOT call validateToken() directly (can fail in incognito)
-    queryClient.invalidateQueries("validateToken");
-    queryClient.refetchQueries("validateToken");
-
-    return data;
-  } catch (err: any) {
-    const msg =
-      err?.response?.data?.message ||
-      err?.response?.data?.error   ||
-      err?.message                  ||
-      "Login failed. Please check your credentials.";
-    console.error("[signIn] Error:", msg);
-    throw new Error(msg);
-  }
-};
-
-// ─── Auth: Validate Token ─────────────────────────────────────────────────────
-
-export const validateToken = async (): Promise<any> => {
-  try {
-    const response = await axiosInstance.get("/api/auth/validate-token");
-    return response.data;
-  } catch (error: any) {
-    if (error?.response?.status === 401) throw new Error("Token invalid");
-    throw new Error("Token validation failed");
-  }
-};
-
-// ─── Auth: Sign Out ───────────────────────────────────────────────────────────
-
-export const signOut = async (): Promise<any> => {
-  const response = await axiosInstance.post("/api/auth/logout");
-
-  ["session_id", "auth_token", "user_id", "user_email", "user_name", "user_image"]
-    .forEach((k) => localStorage.removeItem(k));
-
-  return response.data;
-};
+export {
+  googleLogin,
+  register,
+  signIn,
+  validateToken,
+  signOut,
+} from "./features/auth/services/authApi";
 
 // ─── Hotels ───────────────────────────────────────────────────────────────────
 
