@@ -33,7 +33,8 @@ import "./index.css";
 import { QueryClient, QueryClientProvider } from "react-query";
 import { AppContextProvider }               from "./contexts/AppContext.tsx";
 import { SearchContextProvider }            from "./contexts/SearchContext.tsx";
-import { CurrencyProvider }                 from "./contexts/CurrencyContext.tsx";
+import { CurrencyProvider }                 from "./features/currency/CurrencyContext.tsx";
+import { AuthContextProvider }              from "./features/auth/AuthContext.tsx";
 // ── Proper ESM import — works correctly with Vite ────────────────────────────
 import { GoogleOAuthProvider }              from "@react-oauth/google";
 
@@ -50,11 +51,13 @@ const AppTree = (
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <AppContextProvider>
-        <SearchContextProvider>
-          <CurrencyProvider>
-            <App />
-          </CurrencyProvider>
-        </SearchContextProvider>
+        <AuthContextProvider>
+          <SearchContextProvider>
+            <CurrencyProvider>
+              <App />
+            </CurrencyProvider>
+          </SearchContextProvider>
+        </AuthContextProvider>
       </AppContextProvider>
     </QueryClientProvider>
   </React.StrictMode>
