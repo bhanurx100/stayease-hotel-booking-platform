@@ -24,7 +24,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useState } from "react";
-import { useCurrency } from "../../contexts/CurrencyContext";
+import { useCurrency } from "../../features/currency/CurrencyContext";
 
 type Props = {
   currentUser: UserType;
