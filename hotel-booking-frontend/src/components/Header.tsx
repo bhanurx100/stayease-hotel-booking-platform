@@ -17,7 +17,7 @@ import useSearchContext  from "../hooks/useSearchContext";
 import MobileNav         from "./MobileNav";
 import MainNav           from "./MainNav";
 import { Hotel }         from "lucide-react";
-import CurrencySelector  from "./CurrencySelector";
+import CurrencySelector  from "../features/currency/CurrencySelector";
 
 const Header = () => {
   const search   = useSearchContext();
