@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { useCurrency } from "../contexts/CurrencyContext";
+import { useCurrency } from "../features/currency/CurrencyContext";
 import { adultsLabel, childrenLabel } from "../lib/guest-labels";
 
 type SuccessState = {
