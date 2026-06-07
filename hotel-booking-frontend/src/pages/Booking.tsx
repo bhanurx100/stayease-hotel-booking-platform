@@ -7,6 +7,7 @@ import { useEffect, useMemo } from "react";
 import BookingDetailsSummary from "../components/BookingDetailsSummary";
 import { Elements } from "@stripe/react-stripe-js";
 import useAppContext from "../hooks/useAppContext";
+import useAuth from "../features/auth/hooks/useAuth";
 import {
   Card,
   CardContent,
@@ -16,11 +17,12 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Loader2, CreditCard, Calendar, Users, AlertCircle } from "lucide-react";
-import { useCurrency } from "../contexts/CurrencyContext";
+import { useCurrency } from "../features/currency/CurrencyContext";
 
 const Booking = () => {
   const { formatPrice } = useCurrency();
-  const { stripePromise, isLoggedIn } = useAppContext();
+  const { stripePromise } = useAppContext();
+  const { isLoggedIn } = useAuth();
   const search = useSearchContext();
   const { hotelId } = useParams();
   const navigate = useNavigate();
