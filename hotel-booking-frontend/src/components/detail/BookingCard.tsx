@@ -8,7 +8,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import {
   Heart, ChevronUp, ChevronDown, ShieldCheck, Clock, CreditCard, X,
 } from "lucide-react";
-import { useCurrency } from "../../contexts/CurrencyContext";
+import { useCurrency } from "../../features/currency/CurrencyContext";
 import { propertyLabel, resolvePropertyKind } from "../../lib/property-types";
 
 const SAVED_KEY = "stayease_saved_properties";
