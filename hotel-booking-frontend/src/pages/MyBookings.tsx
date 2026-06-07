@@ -25,13 +25,13 @@ import {
   LogIn,
   UserCircle,
 } from "lucide-react";
-import useAppContext from "../hooks/useAppContext";
-import { useCurrency } from "../contexts/CurrencyContext";
+import useAuth from "../features/auth/hooks/useAuth";
+import { useCurrency } from "../features/currency/CurrencyContext";
 import { adultsLabel, childrenLabel } from "../lib/guest-labels";
 
 const MyBookings = () => {
   const { formatPrice } = useCurrency();
-  const { isLoggedIn } = useAppContext();
+  const { isLoggedIn } = useAuth();
   const { data: hotels } = useQueryWithLoading<HotelWithBookingsType[]>(
     "fetchMyBookings",
     apiClient.fetchMyBookings,
