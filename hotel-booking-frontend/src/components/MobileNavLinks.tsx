@@ -10,14 +10,14 @@ import {
   Hotel,
 } from "lucide-react";
 import UsernameMenu from "./UsernameMenu";
-import useAppContext from "../hooks/useAppContext";
+import useAuth from "../features/auth/hooks/useAuth";
 import { getHotelsSearchUrl } from "../lib/nav-utils";
 
 const linkClass =
   "flex items-center gap-2 w-full py-3 font-bold text-gray-900 hover:text-primary-600 transition-colors";
 
 const MobileNavLinks = () => {
-  const { isLoggedIn } = useAppContext();
+  const { isLoggedIn } = useAuth();
 
   return (
     <div className="flex flex-col gap-1">
