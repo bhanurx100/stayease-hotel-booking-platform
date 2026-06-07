@@ -6,7 +6,7 @@ import { memo } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ShieldCheck, Clock, X, BedDouble } from "lucide-react";
-import { useCurrency } from "../../contexts/CurrencyContext";
+import { useCurrency } from "../../features/currency/CurrencyContext";
 import type { DetailRoom } from "../../lib/hotel-detail-utils";
 import { propertyLabel, resolvePropertyKind } from "../../lib/property-types";
 
