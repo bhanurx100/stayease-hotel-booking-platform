@@ -17,8 +17,8 @@
 import { Link }       from "react-router-dom";
 import { AiFillStar } from "react-icons/ai";
 import { MapPin }     from "lucide-react";
-import { useCurrency } from "../contexts/CurrencyContext";
-import type { CurrencyCode } from "../config/exchange-rates";
+import { useCurrency } from "../features/currency/CurrencyContext";
+import type { CurrencyCode } from "../features/currency/exchange-rates";
 
 interface HotelCardProps {
   hotel: {
