@@ -1,7 +1,7 @@
 import { Button } from "./ui/button";
 import UsernameMenu from "./UsernameMenu";
 import { Link } from "react-router-dom";
-import useAppContext from "../hooks/useAppContext";
+import useAuth from "../features/auth/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,7 @@ const navLinkClass =
   "flex items-center text-white/90 hover:text-white px-4 py-2 rounded-lg font-medium hover:bg-white/10 transition-all duration-200";
 
 const MainNav = () => {
-  const { isLoggedIn } = useAppContext();
+  const { isLoggedIn } = useAuth();
 
   return (
     <nav className="flex items-center gap-1 lg:gap-2">
