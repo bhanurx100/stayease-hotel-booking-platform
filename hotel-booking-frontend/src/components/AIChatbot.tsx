@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { HotelType }      from "../../../shared/types";
 import axiosInstance      from "../lib/api-client";
-import { useCurrency }    from "../contexts/CurrencyContext";
+import { useCurrency }    from "../features/currency/CurrencyContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
