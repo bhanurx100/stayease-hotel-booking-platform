@@ -26,10 +26,10 @@ import {
 } from "../components/ui/card";
 import BookingLogModal from "../components/BookingLogModal";
 import { useState } from "react";
-import useAppContext from "../hooks/useAppContext";
+import useAuth from "../features/auth/hooks/useAuth";
 
 const MyHotels = () => {
-  const { isLoggedIn } = useAppContext();
+  const { isLoggedIn } = useAuth();
   const [selectedHotel, setSelectedHotel] = useState<{
     id: string;
     name: string;
