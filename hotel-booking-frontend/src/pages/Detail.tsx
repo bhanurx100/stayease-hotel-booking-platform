@@ -23,7 +23,7 @@ import ReviewsSection from "../components/detail/ReviewsSection";
 import FAQSection from "../components/detail/FAQSection";
 import SimilarHotels from "../components/detail/SimilarHotels";
 
-import { useCurrency } from "../contexts/CurrencyContext";
+import { useCurrency } from "../features/currency/CurrencyContext";
 import useSearchContext from "../hooks/useSearchContext";
 import * as apiClient from "../api-client";
 import {
