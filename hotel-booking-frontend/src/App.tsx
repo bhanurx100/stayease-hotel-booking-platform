@@ -8,12 +8,10 @@ import Layout from "./layouts/Layout";
 import AuthLayout from "./layouts/AuthLayout";
 import ScrollToTop from "./components/ScrollToTop";
 import { Toaster } from "./components/ui/toaster";
-import Register from "./pages/Register";
-import SignIn from "./pages/SignIn";
-import AddHotel from "./pages/AddHotel";
-import useAppContext from "./hooks/useAppContext";
+import SignUp from "./features/auth/SignUp";
+import SignIn from "./features/auth/SignIn";
+import ProtectedRoutes from "./features/auth/ProtectedRoutes";
 import MyHotels from "./pages/MyHotels";
-import EditHotel from "./pages/EditHotel";
 import Search from "./pages/Search";
 import Detail from "./pages/Detail";
 import Booking from "./pages/Booking";
@@ -26,7 +24,6 @@ import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import AuthCallback from "./pages/AuthCallback";
 
 const App = () => {
-  const { isLoggedIn } = useAppContext();
   return (
     <Router>
       <ScrollToTop />
@@ -83,7 +80,7 @@ const App = () => {
           path="/register"
           element={
             <AuthLayout>
-              <Register />
+              <SignUp />
             </AuthLayout>
           }
         />
@@ -137,26 +134,7 @@ const App = () => {
           }
         />
 
-        {isLoggedIn && (
-          <>
-            <Route
-              path="/add-hotel"
-              element={
-                <Layout>
-                  <AddHotel />
-                </Layout>
-              }
-            />
-            <Route
-              path="/edit-hotel/:hotelId"
-              element={
-                <Layout>
-                  <EditHotel />
-                </Layout>
-              }
-            />
-          </>
-        )}
+        <ProtectedRoutes />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <Toaster />
