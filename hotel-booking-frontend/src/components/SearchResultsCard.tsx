@@ -18,7 +18,7 @@ import {
   CreditCard, ArrowRight,
 } from "lucide-react";
 import { Badge }       from "./ui/badge";
-import { useCurrency } from "../contexts/CurrencyContext";
+import { useCurrency } from "../features/currency/CurrencyContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
