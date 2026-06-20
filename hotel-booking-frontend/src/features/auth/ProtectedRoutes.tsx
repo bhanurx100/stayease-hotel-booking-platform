@@ -1,34 +1,14 @@
-import { Route } from "react-router-dom";
-import Layout from "../../layouts/Layout";
-import AddHotel from "../../pages/AddHotel";
-import EditHotel from "../../pages/EditHotel";
+import { Outlet, Navigate } from "react-router-dom";
 import useAuth from "./hooks/useAuth";
 
 const ProtectedRoutes = () => {
   const { isLoggedIn } = useAuth();
 
-  if (!isLoggedIn) return null;
+  if (!isLoggedIn) {
+    return <Navigate to="/sign-in" replace />;
+  }
 
-  return (
-    <>
-      <Route
-        path="/add-hotel"
-        element={
-          <Layout>
-            <AddHotel />
-          </Layout>
-        }
-      />
-      <Route
-        path="/edit-hotel/:hotelId"
-        element={
-          <Layout>
-            <EditHotel />
-          </Layout>
-        }
-      />
-    </>
-  );
+  return <Outlet />;
 };
 
 export default ProtectedRoutes;

@@ -22,6 +22,8 @@ import ApiDocs from "./pages/ApiDocs";
 import ApiStatus from "./pages/ApiStatus";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import AuthCallback from "./pages/AuthCallback";
+import AddHotel from "./pages/AddHotel";
+import EditHotel from "./pages/EditHotel";
 
 const App = () => {
   return (
@@ -101,40 +103,57 @@ const App = () => {
           }
         />
 
-        <Route
-          path="/my-hotels"
-          element={
-            <Layout>
-              <MyHotels />
-            </Layout>
-          }
-        />
-        <Route
-          path="/my-bookings"
-          element={
-            <Layout>
-              <MyBookings />
-            </Layout>
-          }
-        />
-        <Route
-          path="/hotel/:hotelId/booking"
-          element={
-            <Layout>
-              <Booking />
-            </Layout>
-          }
-        />
-        <Route
-          path="/booking/success"
-          element={
-            <Layout>
-              <BookingSuccess />
-            </Layout>
-          }
-        />
+        <Route element={<ProtectedRoutes />}>
+          <Route
+            path="/my-hotels"
+            element={
+              <Layout>
+                <MyHotels />
+              </Layout>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <Layout>
+                <MyBookings />
+              </Layout>
+            }
+          />
+          <Route
+            path="/hotel/:hotelId/booking"
+            element={
+              <Layout>
+                <Booking />
+              </Layout>
+            }
+          />
+          <Route
+            path="/booking/success"
+            element={
+              <Layout>
+                <BookingSuccess />
+              </Layout>
+            }
+          />
+          <Route
+            path="/add-hotel"
+            element={
+              <Layout>
+                <AddHotel />
+              </Layout>
+            }
+          />
+          <Route
+            path="/edit-hotel/:hotelId"
+            element={
+              <Layout>
+                <EditHotel />
+              </Layout>
+            }
+          />
+        </Route>
 
-        <ProtectedRoutes />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <Toaster />
