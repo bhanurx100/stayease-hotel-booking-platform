@@ -11,19 +11,19 @@ import { Toaster } from "./components/ui/toaster";
 import SignUp from "./features/auth/SignUp";
 import SignIn from "./features/auth/SignIn";
 import ProtectedRoutes from "./features/auth/ProtectedRoutes";
-import MyHotels from "./pages/MyHotels";
-import Search from "./pages/Search";
+import MyHotels from "./features/hotels/pages/MyHotels";
+import Search from "./features/search/pages/Search";
 import Detail from "./pages/Detail";
 import Booking from "./pages/Booking";
 import BookingSuccess from "./pages/BookingSuccess";
 import MyBookings from "./pages/MyBookings";
-import Home from "./pages/Home";
+import Home from "./features/hotels/pages/Home";
 import ApiDocs from "./pages/ApiDocs";
 import ApiStatus from "./pages/ApiStatus";
 import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 import AuthCallback from "./pages/AuthCallback";
-import AddHotel from "./pages/AddHotel";
-import EditHotel from "./pages/EditHotel";
+import AddHotel from "./features/hotels/pages/AddHotel";
+import EditHotel from "./features/hotels/pages/EditHotel";
 
 const App = () => {
   return (

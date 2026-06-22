@@ -13,7 +13,7 @@
  * Existing SearchBar component is kept exactly as-is — only wrapped differently.
  */
 
-import SearchBar         from "./SearchBar";
+import SearchBar         from "../features/search/components/SearchBar";
 import { Shield, Zap, HeadphonesIcon } from "lucide-react";
 
 const Hero = () => {

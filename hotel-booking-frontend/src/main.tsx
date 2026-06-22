@@ -26,17 +26,17 @@
  *     VITE_GOOGLE_CLIENT_ID=1007459125897-173v8b43ivt7gnhjill13s...
  */
 
-import React                                from "react";
-import ReactDOM                             from "react-dom/client";
-import App                                  from "./App.tsx";
+import React from "react";
+import ReactDOM from "react-dom/client";
+import App from "./App.tsx";
 import "./index.css";
 import { QueryClient, QueryClientProvider } from "react-query";
-import { AppContextProvider }               from "./contexts/AppContext.tsx";
-import { SearchContextProvider }            from "./contexts/SearchContext.tsx";
-import { CurrencyProvider }                 from "./features/currency/CurrencyContext.tsx";
-import { AuthContextProvider }              from "./features/auth/AuthContext.tsx";
+import { AppContextProvider } from "./contexts/AppContext.tsx";
+import { SearchContextProvider } from "./features/search/contexts/SearchContext.tsx";
+import { CurrencyProvider } from "./features/currency/CurrencyContext.tsx";
+import { AuthContextProvider } from "./features/auth/AuthContext.tsx";
 // ── Proper ESM import — works correctly with Vite ────────────────────────────
-import { GoogleOAuthProvider }              from "@react-oauth/google";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 export const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 0 } },

@@ -13,7 +13,7 @@
  */
 
 import { useNavigate }   from "react-router-dom";
-import useSearchContext  from "../hooks/useSearchContext";
+import useSearchContext  from "../features/search/hooks/useSearchContext";
 import MobileNav         from "./MobileNav";
 import MainNav           from "./MainNav";
 import { Hotel }         from "lucide-react";

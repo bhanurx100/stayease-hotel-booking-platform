@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ChevronDown, FileText, Activity } from "lucide-react";
-import { getHotelsSearchUrl } from "../lib/nav-utils";
+import { getHotelsSearchUrl } from "../features/hotels/lib/nav-utils";
 
 const NAV_AUTH_WIDTH = "min-w-[120px]";
 
