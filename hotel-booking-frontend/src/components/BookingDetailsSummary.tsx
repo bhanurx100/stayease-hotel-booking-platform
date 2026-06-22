@@ -1,5 +1,5 @@
 import { HotelType } from "../../../shared/types";
-import { guestsSummary } from "../lib/guest-labels";
+import { guestsSummary } from "../features/hotels/lib/guest-labels";
 
 type Props = {
   checkIn: Date;

@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import useAuth from "../features/auth/hooks/useAuth";
 import { useCurrency } from "../features/currency/CurrencyContext";
-import { adultsLabel, childrenLabel } from "../lib/guest-labels";
+import { adultsLabel, childrenLabel } from "../features/hotels/lib/guest-labels";
 
 const MyBookings = () => {
   const { formatPrice } = useCurrency();

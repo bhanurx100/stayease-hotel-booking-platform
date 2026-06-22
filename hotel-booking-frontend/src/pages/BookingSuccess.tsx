@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { useCurrency } from "../features/currency/CurrencyContext";
-import { adultsLabel, childrenLabel } from "../lib/guest-labels";
+import { adultsLabel, childrenLabel } from "../features/hotels/lib/guest-labels";
 
 type SuccessState = {
   hotelName?: string;

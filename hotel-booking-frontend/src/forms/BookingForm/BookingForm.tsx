@@ -3,7 +3,7 @@ import { HotelType, PaymentIntentResponse, UserType } from "../../../../shared/t
 import { queryClient } from "../../main";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { Stripe, StripeCardElement, StripeElements } from "@stripe/stripe-js";
-import useSearchContext from "../../hooks/useSearchContext";
+import useSearchContext from "../../features/search/hooks/useSearchContext";
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation } from "react-query";
 import * as apiClient from "../../api-client";
