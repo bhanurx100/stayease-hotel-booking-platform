@@ -11,20 +11,20 @@ import {
   Phone, Globe, MapPin,
 } from "lucide-react";
 
-import GuestInfoForm from "../forms/GuestInfoForm/GuestInfoForm";
-import DetailHero from "../components/detail/DetailHero";
-import AboutPropertySection from "../components/detail/AboutPropertySection";
-import { isPropertySaved, toggleSavedProperty } from "../components/detail/BookingCard";
-import AISummary from "../components/detail/AISummary";
-import RoomsSection from "../components/detail/RoomComparison";
-import AmenitiesSection from "../components/detail/AmenitiesSection";
-import LocationSection from "../components/detail/LocationSection";
-import ReviewsSection from "../components/detail/ReviewsSection";
-import FAQSection from "../components/detail/FAQSection";
-import SimilarHotels from "../components/detail/SimilarHotels";
+import GuestInfoForm from "../features/hotels/forms/ManageHotelForm/GuestInfoForm";
+import DetailHero from "../features/hotels/components/detail/DetailHero";
+import AboutPropertySection from "../features/hotels/components/detail/AboutPropertySection";
+import { isPropertySaved, toggleSavedProperty } from "../features/hotels/components/detail/BookingCard";
+import AISummary from "../features/hotels/components/detail/AISummary";
+import RoomsSection from "../features/hotels/components/detail/RoomComparison";
+import AmenitiesSection from "../features/hotels/components/detail/AmenitiesSection";
+import LocationSection from "../features/hotels/components/detail/LocationSection";
+import ReviewsSection from "../features/hotels/components/detail/ReviewsSection";
+import FAQSection from "../features/hotels/components/detail/FAQSection";
+import SimilarHotels from "../features/hotels/components/detail/SimilarHotels";
 
 import { useCurrency } from "../features/currency/CurrencyContext";
-import useSearchContext from "../hooks/useSearchContext";
+import useSearchContext from "../features/search/hooks/useSearchContext";
 import * as apiClient from "../api-client";
 import {
   buildAISummaryFromHotel,
@@ -32,7 +32,7 @@ import {
   mergeAllPhotos,
   mergeFacilityGroups,
   normalizeRoom,
-} from "../lib/hotel-detail-utils";
+} from "../features/hotels/lib/hotel-detail-utils";
 
 interface MapLocation {
   lat: number;
@@ -59,12 +59,12 @@ function resolveMapLocation(hotel: any, extra: any): MapLocation | null {
     hotel?.location?.lat != null ? hotel.location : null,
     hotel?.location?.latitude != null
       ? {
-          latitude: hotel.location.latitude,
-          longitude: hotel.location.longitude,
-          address: typeof hotel.location.address === "string"
-            ? hotel.location.address
-            : addressFallback,
-        }
+        latitude: hotel.location.latitude,
+        longitude: hotel.location.longitude,
+        address: typeof hotel.location.address === "string"
+          ? hotel.location.address
+          : addressFallback,
+      }
       : null,
   ];
 
@@ -270,121 +270,121 @@ const Detail = () => {
         />
 
         <div className="space-y-6 min-w-0">
-            <AISummary data={aiSummary} />
+          <AISummary data={aiSummary} />
 
-            <AboutPropertySection
+          <AboutPropertySection
+            hotel={h}
+            extra={extra}
+            amenities={flatAmenities}
+            revSum={revSum}
+            nearby={nearby}
+            hotelType={h.type}
+          />
+
+          <div ref={roomsSectionRef}>
+            <RoomsSection
+              rooms={detailRooms}
               hotel={h}
-              extra={extra}
-              amenities={flatAmenities}
-              revSum={revSum}
-              nearby={nearby}
               hotelType={h.type}
+              formatPrice={(n) => formatPrice(n, h.currency)}
+              nativeCurrency={nativeCurrency}
+              isExternal={isExternal}
+              isDB={isDB}
+              policies={policies}
+              checkIn={checkIn}
+              checkOut={checkOut}
+              adultCount={adultCount}
+              childCount={childCount}
+              onDatesChange={handleDatesChange}
+              onGuestsChange={handleGuestsChange}
+              onReserve={scrollToBooking}
             />
+          </div>
 
-            <div ref={roomsSectionRef}>
-              <RoomsSection
-                rooms={detailRooms}
-                hotel={h}
-                hotelType={h.type}
-                formatPrice={(n) => formatPrice(n, h.currency)}
-                nativeCurrency={nativeCurrency}
-                isExternal={isExternal}
-                isDB={isDB}
-                policies={policies}
-                checkIn={checkIn}
-                checkOut={checkOut}
-                adultCount={adultCount}
-                childCount={childCount}
-                onDatesChange={handleDatesChange}
-                onGuestsChange={handleGuestsChange}
-                onReserve={scrollToBooking}
-              />
-            </div>
+          <AmenitiesSection amenities={flatAmenities} />
 
-            <AmenitiesSection amenities={flatAmenities} />
-
-            {location && isValidMapCoord(location.lat, location.lng) && (
-              <LocationSection
-                lat={location.lat}
-                lng={location.lng}
-                hotelName={h.name ?? ""}
-                address={location.address || h.address || ""}
-                nearby={nearby}
-              />
-            )}
-
-            <ReviewsSection
-              reviews={reviews}
-              revSum={revSum}
-              overallRating={overallRating}
-              reviewCount={reviewCount}
+          {location && isValidMapCoord(location.lat, location.lng) && (
+            <LocationSection
+              lat={location.lat}
+              lng={location.lng}
+              hotelName={h.name ?? ""}
+              address={location.address || h.address || ""}
+              nearby={nearby}
             />
+          )}
 
-            <FAQSection faqs={faqs} />
+          <ReviewsSection
+            reviews={reviews}
+            revSum={revSum}
+            overallRating={overallRating}
+            reviewCount={reviewCount}
+          />
 
-            <SimilarHotels
-              similar={similarHotels}
-              nearby={nearbyHotels}
-              formatPrice={formatPrice}
-              currentId={hotelId}
-            />
+          <FAQSection faqs={faqs} />
 
-            {(() => {
-              const p = policies;
-              const rows = [
-                { label: "Check-in", icon: Clock, val: p.checkIn ?? p.checkInTime },
-                { label: "Check-out", icon: Clock, val: p.checkOut ?? p.checkOutTime },
-                { label: "Cancellation", icon: ShieldCheck, val: p.cancellation ?? p.cancellationPolicy, span: true },
-                { label: "Children", icon: Users, val: p.children },
-                { label: "Pets", icon: Heart, val: p.pets ?? p.petPolicy },
-                { label: "Smoking", icon: Leaf, val: p.smoking ?? p.smokingPolicy },
-              ].filter((r) => r.val);
-              if (!rows.length) return null;
-              return (
-                <section id="section-policies" className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4">Policies</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {rows.map(({ label, icon: Icon, val, span }) => (
-                      <div key={label} className={`flex items-start gap-3 ${span ? "sm:col-span-2" : ""}`}>
-                        <Icon className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{label}</p>
-                          <p className="text-sm text-gray-500">{val}</p>
-                        </div>
+          <SimilarHotels
+            similar={similarHotels}
+            nearby={nearbyHotels}
+            formatPrice={formatPrice}
+            currentId={hotelId}
+          />
+
+          {(() => {
+            const p = policies;
+            const rows = [
+              { label: "Check-in", icon: Clock, val: p.checkIn ?? p.checkInTime },
+              { label: "Check-out", icon: Clock, val: p.checkOut ?? p.checkOutTime },
+              { label: "Cancellation", icon: ShieldCheck, val: p.cancellation ?? p.cancellationPolicy, span: true },
+              { label: "Children", icon: Users, val: p.children },
+              { label: "Pets", icon: Heart, val: p.pets ?? p.petPolicy },
+              { label: "Smoking", icon: Leaf, val: p.smoking ?? p.smokingPolicy },
+            ].filter((r) => r.val);
+            if (!rows.length) return null;
+            return (
+              <section id="section-policies" className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">Policies</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {rows.map(({ label, icon: Icon, val, span }) => (
+                    <div key={label} className={`flex items-start gap-3 ${span ? "sm:col-span-2" : ""}`}>
+                      <Icon className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{label}</p>
+                        <p className="text-sm text-gray-500">{val}</p>
                       </div>
-                    ))}
-                  </div>
-                </section>
-              );
-            })()}
-
-            {(contact.phone || contact.email || contact.website) && (
-              <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Contact</h2>
-                <div className="space-y-3">
-                  {contact.phone && (
-                    <div className="flex items-center gap-3">
-                      <Phone className="w-4 h-4 text-teal-600" />
-                      <a href={`tel:${contact.phone}`} className="text-sm text-gray-700 hover:text-teal-600">{contact.phone}</a>
                     </div>
-                  )}
-                  {contact.email && (
-                    <div className="flex items-center gap-3">
-                      <Globe className="w-4 h-4 text-teal-600" />
-                      <a href={`mailto:${contact.email}`} className="text-sm text-teal-600 hover:underline">{contact.email}</a>
-                    </div>
-                  )}
-                  {contact.website && (
-                    <div className="flex items-center gap-3">
-                      <Globe className="w-4 h-4 text-teal-600" />
-                      <a href={contact.website} target="_blank" rel="noopener noreferrer" className="text-sm text-teal-600 hover:underline">
-                        Visit website
-                      </a>
-                    </div>
-                  )}
+                  ))}
                 </div>
               </section>
-            )}
+            );
+          })()}
+
+          {(contact.phone || contact.email || contact.website) && (
+            <section className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Contact</h2>
+              <div className="space-y-3">
+                {contact.phone && (
+                  <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-teal-600" />
+                    <a href={`tel:${contact.phone}`} className="text-sm text-gray-700 hover:text-teal-600">{contact.phone}</a>
+                  </div>
+                )}
+                {contact.email && (
+                  <div className="flex items-center gap-3">
+                    <Globe className="w-4 h-4 text-teal-600" />
+                    <a href={`mailto:${contact.email}`} className="text-sm text-teal-600 hover:underline">{contact.email}</a>
+                  </div>
+                )}
+                {contact.website && (
+                  <div className="flex items-center gap-3">
+                    <Globe className="w-4 h-4 text-teal-600" />
+                    <a href={contact.website} target="_blank" rel="noopener noreferrer" className="text-sm text-teal-600 hover:underline">
+                      Visit website
+                    </a>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
           {isDB && h._id && pricePerNight > 0 && (
             <div id="booking-panel" ref={bookingPanelRef} className="hidden lg:block bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
