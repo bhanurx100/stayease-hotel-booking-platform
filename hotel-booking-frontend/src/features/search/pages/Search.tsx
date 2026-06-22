@@ -28,18 +28,18 @@
  * - SearchResultsCard rendering
  */
 
-import { useSearchParams }    from "react-router-dom";
-import useSearchContext        from "../hooks/useSearchContext";
-import * as apiClient          from "../api-client";
+import { useSearchParams } from "react-router-dom";
+import useSearchContext from "../hooks/useSearchContext";
+import * as apiClient from "../../../api-client";
 import { useEffect, useState } from "react";
-import { useQuery }            from "react-query";
-import SearchResultsCard       from "../components/SearchResultsCard";
-import Pagination              from "../components/Pagination";
-import StarRatingFilter        from "../components/StarRatingFilter";
-import HotelTypesFilter        from "../components/HotelTypesFilter";
-import FacilitiesFilter        from "../components/FacilitiesFilter";
-import PriceFilter             from "../components/PriceFilter";
-import SearchBar               from "../components/SearchBar";
+import { useQuery } from "react-query";
+import SearchResultsCard from "../components/SearchResultsCard";
+import Pagination from "../../../components/Pagination";
+import StarRatingFilter from "../../../components/StarRatingFilter";
+import HotelTypesFilter from "../../../components/HotelTypesFilter";
+import FacilitiesFilter from "../../../components/FacilitiesFilter";
+import PriceFilter from "../../../components/PriceFilter";
+import SearchBar from "../components/SearchBar";
 import { ChevronLeft, ChevronRight, SlidersHorizontal, Hotel } from "lucide-react";
 
 const RESULTS_PER_PAGE = 10;
@@ -65,24 +65,24 @@ const Search = () => {
   const [urlSearchParams] = useSearchParams();
   const search = useSearchContext();
 
-  const [page,               setPage]               = useState<number>(1);
-  const [selectedStars,      setSelectedStars]      = useState<string[]>([]);
+  const [page, setPage] = useState<number>(1);
+  const [selectedStars, setSelectedStars] = useState<string[]>([]);
   const [selectedHotelTypes, setSelectedHotelTypes] = useState<string[]>([]);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>([]);
-  const [selectedPrice,      setSelectedPrice]      = useState<number | undefined>();
-  const [sortOption,         setSortOption]         = useState<string>("");
-  const [showFilters,        setShowFilters]        = useState(false);
+  const [selectedPrice, setSelectedPrice] = useState<number | undefined>();
+  const [sortOption, setSortOption] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
   // ── Sync URL params → search context ──────────────────────────────────────
   useEffect(() => {
     const destination = urlSearchParams.get("destination");
-    const checkIn     = urlSearchParams.get("checkIn");
-    const checkOut    = urlSearchParams.get("checkOut");
-    const adultCount  = urlSearchParams.get("adultCount");
-    const childCount  = urlSearchParams.get("childCount");
+    const checkIn = urlSearchParams.get("checkIn");
+    const checkOut = urlSearchParams.get("checkOut");
+    const adultCount = urlSearchParams.get("adultCount");
+    const childCount = urlSearchParams.get("childCount");
 
-    const inDate  = checkIn  ? new Date(checkIn)  : tomorrow();
-    const outDate = checkOut ? new Date(checkOut)  : dayAfterTomorrow();
+    const inDate = checkIn ? new Date(checkIn) : tomorrow();
+    const outDate = checkOut ? new Date(checkOut) : dayAfterTomorrow();
     const safeOut = outDate > inDate ? outDate : new Date(inDate.getTime() + 86_400_000);
 
     search.saveSearchValues(
@@ -90,26 +90,26 @@ const Search = () => {
       inDate,
       safeOut,
       parseInt(adultCount || String(search.adultCount || 1), 10),
-      parseInt(childCount  || String(search.childCount || 0), 10)
+      parseInt(childCount || String(search.childCount || 0), 10)
     );
 
     const pageParam = urlSearchParams.get("page");
     if (pageParam) setPage(Math.max(1, parseInt(pageParam, 10)));
 
     const stars = urlSearchParams.get("stars");
-    const types  = urlSearchParams.get("types");
-    const sort   = urlSearchParams.get("sortOption");
-    const maxP   = urlSearchParams.get("maxPrice");
+    const types = urlSearchParams.get("types");
+    const sort = urlSearchParams.get("sortOption");
+    const maxP = urlSearchParams.get("maxPrice");
     if (stars) setSelectedStars([stars]);
     if (types) setSelectedHotelTypes([types]);
-    if (sort)  setSortOption(sort);
-    if (maxP)  setSelectedPrice(parseInt(maxP, 10));
+    if (sort) setSortOption(sort);
+    if (maxP) setSelectedPrice(parseInt(maxP, 10));
   }, [urlSearchParams.toString()]);
 
   // ── Determine which fetch mode to use ─────────────────────────────────────
   // "default mode": no destination AND no active filters → show all DB hotels
   // "search mode":  destination typed OR any filter active → run full search
-  const hasDestination  = !!(search.destination?.trim());
+  const hasDestination = !!(search.destination?.trim());
   const hasActiveFilters =
     selectedStars.length > 0 || selectedHotelTypes.length > 0 ||
     selectedFacilities.length > 0 || !!selectedPrice || !!sortOption;
@@ -125,7 +125,7 @@ const Search = () => {
     ["fetchAllHotels"],
     () => apiClient.fetchHotels(),
     {
-      enabled:   !isSearchMode,  // only runs when NOT in search mode
+      enabled: !isSearchMode,  // only runs when NOT in search mode
       staleTime: 5 * 60_000,
     }
   );
@@ -134,16 +134,16 @@ const Search = () => {
   // Existing behaviour — unchanged.
   const searchParams = {
     destination: search.destination?.trim() || "",
-    checkIn:     search.checkIn?.toISOString() ?? tomorrow().toISOString(),
-    checkOut:    search.checkOut?.toISOString() ?? dayAfterTomorrow().toISOString(),
-    adultCount:  (search.adultCount || 1).toString(),
-    childCount:  (search.childCount || 0).toString(),
-    page:        page.toString(),
-    limit:       String(RESULTS_PER_PAGE),
-    stars:       selectedStars,
-    types:       selectedHotelTypes,
-    facilities:  selectedFacilities,
-    maxPrice:    selectedPrice?.toString(),
+    checkIn: search.checkIn?.toISOString() ?? tomorrow().toISOString(),
+    checkOut: search.checkOut?.toISOString() ?? dayAfterTomorrow().toISOString(),
+    adultCount: (search.adultCount || 1).toString(),
+    childCount: (search.childCount || 0).toString(),
+    page: page.toString(),
+    limit: String(RESULTS_PER_PAGE),
+    stars: selectedStars,
+    types: selectedHotelTypes,
+    facilities: selectedFacilities,
+    maxPrice: selectedPrice?.toString(),
     sortOption,
   };
 
@@ -160,16 +160,16 @@ const Search = () => {
 
   // ── Resolved display data ─────────────────────────────────────────────────
   // In default mode: allDbHotels is a flat HotelType[] — wrap it like searchData
-  const isLoading    = isSearchMode ? searchLoading : allDbLoading;
+  const isLoading = isSearchMode ? searchLoading : allDbLoading;
   const displayHotels: any[] = isSearchMode
     ? (searchData?.data ?? [])
     : (allDbHotels ?? []).map((h) => ({ ...h, source: "db" }));
 
   // Pagination only applies in search mode (allDbHotels shows all at once)
   const totalResults = isSearchMode ? (searchData?.pagination.total ?? 0) : displayHotels.length;
-  const totalPages   = isSearchMode ? (searchData?.pagination.pages ?? 1) : 1;
-  const fromResult   = totalResults > 0 ? (page - 1) * RESULTS_PER_PAGE + 1 : 0;
-  const toResult     = Math.min(page * RESULTS_PER_PAGE, totalResults);
+  const totalPages = isSearchMode ? (searchData?.pagination.pages ?? 1) : 1;
+  const fromResult = totalResults > 0 ? (page - 1) * RESULTS_PER_PAGE + 1 : 0;
+  const toResult = Math.min(page * RESULTS_PER_PAGE, totalResults);
 
   // ── Filter handlers ────────────────────────────────────────────────────────
   const resetFilters = () => {
@@ -239,10 +239,10 @@ const Search = () => {
               )}
             </div>
             <div className="space-y-5">
-              <StarRatingFilter    selectedStars={selectedStars}           onChange={handleStarsChange}       />
-              <HotelTypesFilter   selectedHotelTypes={selectedHotelTypes} onChange={handleHotelTypeChange}   />
-              <FacilitiesFilter   selectedFacilities={selectedFacilities} onChange={handleFacilityChange}    />
-              <PriceFilter        selectedPrice={selectedPrice}           onChange={(v) => { setSelectedPrice(v); setPage(1); }} />
+              <StarRatingFilter selectedStars={selectedStars} onChange={handleStarsChange} />
+              <HotelTypesFilter selectedHotelTypes={selectedHotelTypes} onChange={handleHotelTypeChange} />
+              <FacilitiesFilter selectedFacilities={selectedFacilities} onChange={handleFacilityChange} />
+              <PriceFilter selectedPrice={selectedPrice} onChange={(v) => { setSelectedPrice(v); setPage(1); }} />
             </div>
           </div>
         </div>

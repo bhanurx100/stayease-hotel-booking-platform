@@ -9,24 +9,24 @@
  * Source detection, cache population, booking flow, teal/emerald theme.
  */
 
-import { Link }        from "react-router-dom";
-import { HotelType }   from "../../../shared/types";
-import { AiFillStar }  from "react-icons/ai";
+import { Link } from "react-router-dom";
+import { HotelType } from "../../../../../shared/types";
+import { AiFillStar } from "react-icons/ai";
 import {
   MapPin, Building2, Users, Wifi, Car, Waves,
   Dumbbell, Sparkles, UtensilsCrossed, Coffee, Plane, Building,
   CreditCard, ArrowRight,
 } from "lucide-react";
-import { Badge }       from "./ui/badge";
-import { useCurrency } from "../features/currency/CurrencyContext";
+import { Badge } from "../../../components/ui/badge";
+import { useCurrency } from "../../currency/CurrencyContext";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type HotelWithSource = HotelType & {
-  source?:         "db" | "external";
+  source?: "db" | "external";
   bookingHotelId?: number;
-  bookingUrl?:     string;
-  currency?:       string;
+  bookingUrl?: string;
+  currency?: string;
 };
 
 type Props = { hotel: HotelWithSource };
@@ -35,13 +35,13 @@ type Props = { hotel: HotelWithSource };
 
 function getFacilityIcon(facility: string) {
   const map: Record<string, any> = {
-    "Free WiFi":       Wifi,
-    "Free Parking":    Car,
-    "Swimming Pool":   Waves,
-    "Fitness Center":  Dumbbell,
-    Spa:               Sparkles,
-    Restaurant:        UtensilsCrossed,
-    "Bar/Lounge":      Coffee,
+    "Free WiFi": Wifi,
+    "Free Parking": Car,
+    "Swimming Pool": Waves,
+    "Fitness Center": Dumbbell,
+    Spa: Sparkles,
+    Restaurant: UtensilsCrossed,
+    "Bar/Lounge": Coffee,
     "Airport Shuttle": Plane,
     "Business Center": Building,
   };
@@ -57,8 +57,8 @@ const SearchResultsCard = ({ hotel }: Props) => {
   const { formatPrice } = useCurrency();
 
   const isExternal = hotel.source === "external";
-  const hasPrice   = (hotel.pricePerNight ?? 0) > 0;
-  const detailUrl  = `/detail/${hotel._id}`;
+  const hasPrice = (hotel.pricePerNight ?? 0) > 0;
+  const detailUrl = `/detail/${hotel._id}`;
 
   const formattedPrice = formatPrice(
     hotel.pricePerNight,
